@@ -1,0 +1,5 @@
+Distribución entregada al responsable de CIPAT para uso y revisión local.
+Antes de publicarla, el responsable debe definir la licencia, autoría y contacto.
+No se declara el aplicativo de código abierto mediante este empaquetado.
+Las bibliotecas R utilizadas conservan sus propias licencias. La tipografía
+Montserrat se incluye con su licencia original en inst/app/www/fonts/.

@@ -1,0 +1,24 @@
+PHENOIMAGE E21 - PREPARACION PARA GITHUB PRIVADO
+
+Estado: archivos preparados; no hay repositorio creado ni publicado.
+Entorno de pruebas: Linux, R 4.5.0.
+PASS: R CMD build del paquete fuente.
+PASS: R CMD INSTALL desde carpeta y desde el archivo .tar.gz en bibliotecas nuevas.
+PASS: todos los archivos de diseño y logos idénticos por SHA256 a E20.
+PASS: repositorio sin GeoTIFF de ensayo ni resultados Excel; cada archivo fuente está por debajo de 25 MiB.
+<environment: 0x55a5b704dd78>
+PASS: paquete independiente instalado, sin CIPAT y sin datos de ejemplo obligatorios.
+Ejemplo rgb instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
+Ejemplo rgb instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
+Ejemplo sentera instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
+Ejemplo sentera instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
+PASS: instalación RGB/Sentera, archivos y shapefiles conservados, rechazo de sobrescritura implícita y reemplazo explícito.
+PASS: ambos módulos encuentran ejemplos externos a la biblioteca del paquete.
+PASS: ZIP incompleto/ajeno rechazado sin modificar los ejemplos instalados.
+PASS: sintaxis del aplicativo y todos sus módulos.
+PASS: dependencias y versiones comprobables sin ejemplos ni CIPAT.
+PASS: funciones principales de índices, estadísticas, cobertura y procesamiento idénticas a E20.
+PASS: instalador, lanzador y generador de ejemplos con sintaxis válida.
+
+Las pruebas de instalación de ejemplos usaron archivos pequeños de prueba con los nombres y componentes requeridos, no un procesamiento de los ortomosaicos reales. No se ejecutó Shiny completo en Windows. Las pruebas no sustituyen la validación científica de los resultados.
+El instalador de usuarios nuevos no requiere CIPAT. El generador de ejemplos para el responsable aprovecha los datos ya instalados, si existen.
