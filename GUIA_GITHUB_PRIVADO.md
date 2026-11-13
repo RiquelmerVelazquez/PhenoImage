@@ -25,7 +25,7 @@ Esta guía está preparada para una cuenta nueva y un repositorio privado. El re
 2. Dentro del repositorio vacío selecciona **uploading an existing file**, o **Add file → Upload files**.
 3. Arrastra el CONTENIDO de la carpeta `PhenoImage` del kit. Incluye carpetas como `R`, `man`, `inst` y los archivos `DESCRIPTION`, `NAMESPACE`, `README.md`, `.gitignore` y `.Rbuildignore`.
 4. Comprueba que `DESCRIPTION` y `README.md` quedan directamente en la raíz del repositorio, no dentro de otra carpeta `PhenoImage/`.
-5. Mensaje de cambio sugerido: **Primera versión privada de PhenoImage E21**.
+5. Mensaje de cambio sugerido: **Primera versión privada de PhenoImage E22**.
 6. Pulsa **Commit changes**.
 
 No subas el ZIP entero como sustituto del código. No subas ortomosaicos ni resultados a este historial. El kit separa esos datos del código para evitar archivos demasiado grandes en Git.
@@ -33,10 +33,10 @@ No subas el ZIP entero como sustituto del código. No subas ortomosaicos ni resu
 ## 4. Crear una Release privada (descargas)
 
 1. En el repositorio abre **Releases → Create a new release**.
-2. Crea la etiqueta **v4.7.0.21**.
-3. Título: **PhenoImage E21 · Evaluación privada**.
+2. Crea la etiqueta **v4.7.0.22**.
+3. Título: **PhenoImage E22 · Evaluación privada**.
 4. En la descripción indica que incluye instalación independiente, módulos Sentera/RGB y ejemplos opcionales. Se puede copiar el contenido de `NOTAS_RELEASE.md` de este kit.
-5. Adjunta `phenoImage_4.7.0.21.tar.gz`, que viene preparado en el kit.
+5. Adjunta `phenoImage_4.7.0.22.tar.gz`, que viene preparado en el kit.
 6. Opcionalmente adjunta los ZIP de ejemplo generados en el siguiente paso.
 7. Publica la Release en el repositorio privado. Solo los usuarios con acceso podrán verla y descargarla.
 

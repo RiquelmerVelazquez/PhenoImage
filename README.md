@@ -1,3 +1,9 @@
+# Corrección E22: instalación de ejemplos
+
+El instalador admite los archivos auxiliares `.cpg` vacíos que contienen los ejemplos originales. Las imágenes y componentes principales continúan requiriendo contenido; los tamaños extraídos se verifican contra el ZIP. No se modifica la codificación de los shapefiles ni los cálculos.
+
+Los ZIP RGB y Sentera ya generados siguen siendo válidos. No hay que volver a crearlos ni volver a subirlos a GitHub.
+
 # PhenoImage
 
 ### Fenotipado de forrajes mediante imágenes UAV
@@ -8,7 +14,7 @@
 
 PhenoImage es una aplicación local de R/Shiny para organizar el análisis de imágenes de ensayos de forrajes. Integra módulos para Sentera Double 4K y RGB convencional, con extracción de resultados por parcela y exportación de productos.
 
-**Versión 4.7.0.21 · E21 · Distribución privada de evaluación.**
+**Versión 4.7.0.22 · E22 · Distribución privada de evaluación.**
 
 ## Capacidades
 
@@ -21,7 +27,7 @@ PhenoImage es una aplicación local de R/Shiny para organizar el análisis de im
 | Texturas | Entropía, contraste y homogeneidad GLCM |
 | Resultados | Tablas individuales e integrada, GeoTIFF y visores interactivos |
 
-Se conservan la interfaz, logos, estilos y módulos de E20. E21 cambia la distribución de los ejemplos y la instalación; no cambia las fórmulas ni las funciones principales de procesamiento. El uso científico requiere validar las entradas, la calibración y los resultados para cada evaluación. El empaquetado no constituye esa validación.
+Se conservan la interfaz, logos, estilos y módulos de E20. E22 cambia la distribución de los ejemplos y la instalación; no cambia las fórmulas ni las funciones principales de procesamiento. El uso científico requiere validar las entradas, la calibración y los resultados para cada evaluación. El empaquetado no constituye esa validación.
 
 ## Requisitos
 
@@ -64,7 +70,7 @@ Si usas otras aplicaciones con una función llamada `run_app`, prefiere `phenoIm
 
 ## Instalación alternativa desde una versión publicada
 
-Si el responsable adjuntó `phenoImage_4.7.0.21.tar.gz` a una **Release** privada, descarga ese archivo. En R:
+Si el responsable adjuntó `phenoImage_4.7.0.22.tar.gz` a una **Release** privada, descarga ese archivo. En R:
 
 ```r
 install.packages(file.choose(), repos = NULL, type = "source")
@@ -129,4 +135,4 @@ Proyecto de CIPAT · Grupo Papalotla, preparado para revisión privada. El conta
 
 Para informar un problema usa **Issues** del repositorio privado e indica la versión, el módulo, el mensaje de error y los pasos para reproducirlo. Evita adjuntar datos del ensayo que no estén autorizados para compartir.
 
-`VERIFICACION.txt` describe las comprobaciones técnicas realizadas y sus límites. Aún no se ha creado ni publicado este repositorio: esta es la documentación lista para cargar cuando exista la cuenta.
+`VERIFICACION.txt` describe las comprobaciones técnicas realizadas y sus límites. El repositorio privado ya existe en https://github.com/RiquelmerVelazquez/PhenoImage . La versión E21 se publicó; esta corrección E22 debe agregarse como una nueva versión.

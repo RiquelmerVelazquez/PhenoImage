@@ -1,0 +1,13 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.Renviron
+*.tif
+*.tiff
+*.xlsx
+*.rds
+*.tar.gz
+PhenoImage_Ejemplo_*.zip
+resultados/
+releases/
