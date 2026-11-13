@@ -2,8 +2,11 @@ Package: phenoImage
 Type: Package
 Title: PhenoImage - Fenotipado Mediante Imagenes UAV
 Version: 4.7.0.22
-Author: Equipo CIPAT
-Maintainer: Equipo CIPAT <contacto-pendiente@example.invalid>
+Authors@R: person(given = "Riquelmer de Jesús", family = "Velázquez Hernandez",
+    email = "rvelazquez@grupopapalotla.com", role = c("aut", "cre"),
+    comment = c(Affiliation = "CIPAT - Grupo Papalotla"))
+Author: Riquelmer de Jesús Velázquez Hernandez [aut, cre]
+Maintainer: Riquelmer de Jesús Velázquez Hernandez <rvelazquez@grupopapalotla.com>
 Description: Incluye la aplicacion Shiny completa PhenoImage de CIPAT, sus modulos
     Sentera y RGB, estilos, imagenes, tipografia y soporte para conjuntos de ejemplo opcionales.
     Ejecuta localmente el analisis por parcela mediante la interfaz existente.

@@ -127,12 +127,18 @@ Descarga la nueva versión y repite la instalación con PhenoImage detenido y la
 
 [pliman](https://nepem-ufsc.github.io/pliman/) · [Shiny](https://shiny.posit.co/)
 
-## Autoría y distribución
+## Autoría y contacto
 
-Proyecto de CIPAT · Grupo Papalotla, preparado para revisión privada. El contacto del mantenedor sigue pendiente de completar antes de una distribución formal. La dirección `contacto-pendiente@example.invalid` del DESCRIPTION es un marcador técnico y no recibe correo. La licencia y los permisos de distribución deben definirse por el responsable; este repositorio no se declara automáticamente de código abierto.
+**Autor y responsable de mantenimiento:** Riquelmer de Jesús Velázquez Hernandez.  
+**Contacto:** [rvelazquez@grupopapalotla.com](mailto:rvelazquez@grupopapalotla.com).  
+**Vinculación institucional:** CIPAT · Centro de Investigación de Pastos Tropicales · Grupo Papalotla.
+
+PhenoImage se desarrolla como parte de las actividades de análisis de imágenes y fenotipado del área de investigación de CIPAT · Grupo Papalotla.
+
+**Titularidad y condiciones de distribución:** pendientes de definición institucional. El proyecto se mantiene en revisión privada; la licencia se completará con la decisión institucional correspondiente.
 
 ## Ayuda
 
 Para informar un problema usa **Issues** del repositorio privado e indica la versión, el módulo, el mensaje de error y los pasos para reproducirlo. Evita adjuntar datos del ensayo que no estén autorizados para compartir.
 
-`VERIFICACION.txt` describe las comprobaciones técnicas realizadas y sus límites. El repositorio privado ya existe en https://github.com/RiquelmerVelazquez/PhenoImage . La versión E21 se publicó; esta corrección E22 debe agregarse como una nueva versión.
+`VERIFICACION.txt` describe las comprobaciones técnicas realizadas y sus límites. El repositorio privado ya existe en https://github.com/RiquelmerVelazquez/PhenoImage . E22 está publicada como versión privada de evaluación.
