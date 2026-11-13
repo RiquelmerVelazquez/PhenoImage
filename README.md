@@ -1,9 +1,3 @@
-# Corrección E22: instalación de ejemplos
-
-El instalador admite los archivos auxiliares `.cpg` vacíos que contienen los ejemplos originales. Las imágenes y componentes principales continúan requiriendo contenido; los tamaños extraídos se verifican contra el ZIP. No se modifica la codificación de los shapefiles ni los cálculos.
-
-Los ZIP RGB y Sentera ya generados siguen siendo válidos. No hay que volver a crearlos ni volver a subirlos a GitHub.
-
 # PhenoImage
 
 ### Fenotipado de forrajes mediante imágenes UAV
