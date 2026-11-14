@@ -90,7 +90,7 @@ Seleccione el archivo `.tar.gz` cuando aparezca el selector. La primera instrucc
 
 Puede analizar sus propios datos sin descargar ejemplos. Los ortomosaicos de demostración se distribuyen por separado del código de la aplicación.
 
-Cuando estén disponibles en **Releases**, descargue el conjunto que desee utilizar:
+Descargue los conjuntos desde [**Datos de ejemplo de PhenoImage**](https://github.com/RiquelmerVelazquez/PhenoImage/releases/tag/datos-ejemplo). En esa publicación encontrará los siguientes archivos:
 
 - `PhenoImage_Ejemplo_RGB.zip`: ortomosaico RGB, CHM y polígonos de parcelas.
 - `PhenoImage_Ejemplo_Sentera.zip`: multibanda Sentera y polígonos de parcelas.
