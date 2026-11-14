@@ -8,7 +8,7 @@
   <img src="inst/app/www/cipat.png" alt="CIPAT · Centro de Investigación de Pastos Tropicales" width="240">
 </p>
 
-![Portada de PhenoImage: caracterización fenotípica de ensayos de forrajes mediante imágenes UAV](inst/app/www/portada_cipat_v46.png)
+![Pantalla de inicio de PhenoImage: menú de navegación y módulos de análisis espectral, estructural y de color](inst/app/www/portada_phenoimage.png)
 
 PhenoImage es una aplicación local desarrollada en R/Shiny para la caracterización fenotípica de ensayos de forrajes mediante imágenes obtenidas con vehículos aéreos no tripulados (UAV). Integra módulos para Sentera Double 4K y RGB convencional, con análisis por parcela, visualización de resultados y exportación de productos.
 
