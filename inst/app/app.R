@@ -1,9 +1,9 @@
-# PhenoImage | CIPAT · Grupo Papalotla 4.7.0 E21
+# PhenoImage | CIPAT · Grupo Papalotla 4.8.0
 # Plataforma de Caracterización Fenotípica | Aplicación local Shiny
-# Instalación y arranque: consulta INSTRUCCIONES.txt.
-# Usa INSTALAR_DEPENDENCIAS.R la primera vez e INICIAR_APLICACION.R después.
+# Instalación y arranque: consulta LEEME.txt en la raíz del paquete.
+# Abre INICIAR_PHENOIMAGE.R con Source en RStudio.
 
-message("PhenoImage | 4.7.0 E21 | Portada de resultados")
+message("PhenoImage | 4.8.0 | Portada de resultados")
 message("Carpeta de la app: ", normalizePath(getwd(), winslash = "/", mustWork = TRUE))
 
 paquetes <- c("shiny", "terra", "sf", "exactextractr", "openxlsx",
@@ -36,6 +36,7 @@ source(file.path("R", "sentera_multibanda.R"), local = TRUE)
 source(file.path("R", "procesamiento_bloques.R"), local = TRUE)
 source(file.path("R", "resultados_estandar.R"), local = TRUE)
 source(file.path("R", "guardado_sentera.R"), local = TRUE)
+source(file.path("R", "segmentacion_muestras.R"), local = TRUE)
 
 calcular_indice <- function(nombre, b, factor, formulas) {
   bandas <- list(R = b[[1]], G = b[[2]], B = b[[3]],
@@ -221,6 +222,9 @@ procesar_htp <- function(p) {
       "OSAVI/SAVI/EVI/MSAVI2: exploratorios hasta validar escala de reflectancia; no se reescalan automáticamente")))
   metadatos <- rbind(metadatos, data.frame(Parametro = c("Bandas_RGB","Modo_datos"),
     Valor = c(texto_bandas_cipat(mapa_bandas_cipat(p, clave_rgb_cipat(p), Inf)[c("R", "G", "B")]),if(isTRUE(p$datos_ejemplo)) "Ejemplo incluido" else "Archivos del usuario")))
+  if (!is.null(p$muestras)) registrar("Clasificando RGB por muestras y calculando cobertura adicional")
+  seg_muestras <- agregar_cobertura_muestras_cipat(p, tabla, polys, metadatos)
+  tabla <- seg_muestras$tabla; metadatos <- seg_muestras$meta
   # Todos los GeoTIFF de salida están en su ubicación definitiva.
   ruta_mascara <- terra::sources(mask)[1]
   rm(bandas, ndvi, mask)
@@ -420,6 +424,10 @@ procesar_phantom <- function(p) {
     Valor = c("pliman::rgb_to_hsb; DGCI de la guía; valores no finitos como NoData", "H: grados; S y brillo: porcentaje",
       paste0("pliman::rgb_to_hsb y pliman::rgb_to_lab; versión ", utils::packageVersion("pliman")), "0,45,90,135 grados; distancia 1; promedio", "32",
       as.character(glcm_min), as.character(glcm_max), "any: excluye ventanas con NA")))
+  if (!is.null(p$muestras)) registrar("Clasificando RGB por muestras y calculando cobertura adicional")
+  seg_muestras <- agregar_cobertura_muestras_cipat(p, tabla, polys, meta)
+  tabla <- seg_muestras$tabla; meta <- seg_muestras$meta
+  if (!is.null(seg_muestras$ruta)) capas[["Máscara por muestras"]] <- seg_muestras$ruta
   tabla <- normalizar_resultados_cipat(tabla, "phantom")
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "HTP_Phantom"); openxlsx::writeData(wb, "HTP_Phantom", tabla)
@@ -442,6 +450,7 @@ procesar_modulo <- function(p) {
   x <- procesar_htp(p)
   x$tipo <- "sentera"; x$fuentes <- p
   x$capas <- list("RGB" = p$rgb, "NDVI" = x$ndvi, "Máscara NDVI" = x$mask)
+  if (!is.null(p$muestras)) x$capas[["Máscara por muestras"]] <- archivo_salida_cipat(p, "Mascara_Muestras", "tif")
   for (i in unique(c("NDVI", p$indices))) {
     x$capas[[i]] <- file.path(p$salida, nombre_tif_sentera(i, p$lote, p$fecha))
   }
@@ -460,6 +469,8 @@ source(file.path("R", "vectoriales.R"), local = TRUE)
 source(file.path("R", "integrar_datos.R"), local = TRUE)
 source(file.path("R", "testigos.R"), local = TRUE)
 source(file.path("R", "resumen_resultados.R"), local = TRUE)
+source(file.path("R", "analisis_selectivo.R"), local = TRUE)
+procesar_modulo <- function(p) procesar_seleccion_cipat(p)
 simbolo_seccion <- function(titulo) {
   t <- tolower(titulo)
   if (grepl("distribuci|dispersi|estad|comparaci|asociaci|explora", t)) return("chart-column")
@@ -521,9 +532,9 @@ paleta_cabecera_cipat <- function() {
 }
 
 ui <- fluidPage(
-  title = "PhenoImage | Fenotipado UAV · 4.7.0 E21",
+  title = "PhenoImage | Fenotipado UAV · 4.8.0",
   tags$head(tags$meta(name = "viewport", content = "width=device-width, initial-scale=1"),
-    tags$link(rel = "stylesheet", href = "estilo.css?v=4.7.0-E21-COMPLETO"), tags$script(src = "interfaz.js?v=4.7.0-E21-COMPLETO")),
+    tags$link(rel = "stylesheet", href = "estilo.css?v=4.8.0-UNIFICADA"), tags$script(src = "interfaz.js?v=4.8.0-UNIFICADA")),
   div(class = "app-shell",
     tags$aside(class = "side-nav",
       div(class = "brand", tags$img(src = "cipat.png", alt = "CIPAT · Centro de Investigación de Pastos Tropicales", class = "side-logo")),
@@ -541,7 +552,7 @@ ui <- fluidPage(
     tags$main(class = "workspace",
       div(class = "topbar",
         div(class = "header-context", tags$button(id = "toggle_menu", type = "button", class = "toolbar-button", title = "Mostrar / contraer menú", `aria-label` = "Mostrar o contraer menú", `aria-expanded` = "true", icon("bars")),
-          strong("PhenoImage", span(class = "build-badge", title = "Información del ortomosaico y asignación de bandas", "4.7.0 E21")), span(class = "top-title", textOutput("modulo_actual"))),
+          strong("PhenoImage", span(class = "build-badge", title = "Información del ortomosaico y asignación de bandas", "4.8.0")), span(class = "top-title", textOutput("modulo_actual"))),
         div(class = "header-actions", div(class = "status-pill", span(class = "dot"), textOutput("estado_corto")),
           paleta_cabecera_cipat(),
           tags$button(id = "pantalla_completa", type = "button", class = "toolbar-button", title = "Pantalla completa", `aria-label` = "Pantalla completa", icon("expand")),
@@ -592,6 +603,15 @@ ui <- fluidPage(
             div(class = "home-summary", uiOutput("etiqueta_resultado"), metricas()))),
         tabPanelBody("archivos",
           encabezado("01 · PREPARACIÓN", "Datos de entrada", "Carga únicamente los archivos del módulo seleccionado en el menú lateral."),
+          tarjeta("¿Qué deseas analizar?", "Elige antes de cargar archivos. Los polígonos de parcelas son comunes a todos los análisis.",
+            radioButtons("modo_analisis", NULL, c("Análisis completo" = "completo", "Personalizar análisis" = "personalizado"), inline = TRUE),
+            conditionalPanel("input.modo_analisis == 'personalizado' && input.tipo == 'phantom'",
+              checkboxGroupInput("grupos_phantom", "Análisis RGB", grupos_disponibles_cipat("phantom"), selected = unname(grupos_disponibles_cipat("phantom")))),
+            conditionalPanel("input.modo_analisis == 'personalizado' && input.tipo == 'sentera'",
+              checkboxGroupInput("grupos_sentera", "Análisis Sentera", grupos_disponibles_cipat("sentera"), selected = unname(grupos_disponibles_cipat("sentera")))),
+            conditionalPanel("input.tipo == 'sentera'", radioButtons("metodo", "Máscara para las estadísticas", c("NDVI · Otsu"="Otsu", "NDVI · umbral manual"="Manual", "Por muestras"="Muestras"))),
+            conditionalPanel("input.tipo == 'phantom' && (input.modo_analisis == 'completo' || (input.grupos_phantom || []).some(function(x){return x != 'altura';}))", radioButtons("metodo_phantom", "Máscara para las estadísticas", c("ExG · Otsu"="Otsu", "ExG · umbral manual"="Manual", "Por muestras"="Muestras"))),
+            textOutput("requisitos_analisis")),
           selector_ejemplos_cipat(),
           tabsetPanel(id = "tipo_entrada", type = "tabs",
             tabPanel("Ráster", value = "raster",
@@ -604,17 +624,18 @@ ui <- fluidPage(
                         "Multibanda Sentera" = "multibanda"), selected = "metashape"),
                       conditionalPanel("input.origen_sentera != 'multibanda'",
                         importador_cipat("rgb", "Ortomosaico RGB · Sentera", "Bandas rojo, verde y azul (R=1, G=2, B=3)."),
-                        importador_cipat("ms", "Ortomosaico (RE/NIR) · Sentera", "Bandas Red Edge e infrarrojo cercano (RE: banda 1; NIR: banda 3).")),
+                        conditionalPanel("input.modo_analisis == 'completo' || input.metodo != 'Muestras' || (input.grupos_sentera || []).some(function(x){return x == 'indices' || x == 'bandas';})", importador_cipat("ms", "Ortomosaico (RE/NIR) · Sentera", "Bandas Red Edge e infrarrojo cercano (RE: banda 1; NIR: banda 3)."))),
                       conditionalPanel("input.origen_sentera == 'multibanda'",
                         importador_cipat("multibanda", "Multibanda Sentera", "GeoTIFF previamente corregido: 1 Rojo · 2 Verde · 3 Azul · 4 Red edge · 5 NIR."))),
                     conditionalPanel("input.tipo == 'phantom'",
-                      importador_cipat("rgb_phantom", "Ortomosaico RGB convencional", "Bandas rojo, verde y azul (R=1, G=2, B=3)."),
+                      conditionalPanel("input.tipo == 'sentera' || input.modo_analisis == 'completo' || (input.grupos_phantom || []).some(function(x){return x != 'altura';})", importador_cipat("rgb_phantom", "Ortomosaico RGB convencional", "Bandas rojo, verde y azul (R=1, G=2, B=3).")),
+                      conditionalPanel("input.tipo == 'phantom' && (input.modo_analisis == 'completo' || (input.grupos_phantom || []).indexOf('altura') >= 0)",
                       radioButtons("fuente_altura", "Fuente del modelo de altura", c("CHM ya calculado" = "CHM", "DSM y DTM" = "DSM_DTM")),
                       conditionalPanel("input.fuente_altura == 'CHM'", importador_cipat("chm", "Modelo de altura del dosel (CHM)", "Altura de la vegetación respecto al suelo.")),
                       conditionalPanel("input.fuente_altura == 'DSM_DTM'",
                         importador_cipat("dsm", "Modelo digital de superficie (DSM)"),
                         importador_cipat("dtm", "Modelo digital del terreno (DTM)"),
-                        ayuda_breve("El CHM se calcula a partir de DSM y DTM. Ambos modelos necesitan la misma referencia vertical y unidad de elevación.")))),
+                        ayuda_breve("El CHM se calcula a partir de DSM y DTM. Ambos modelos necesitan la misma referencia vertical y unidad de elevación."))))),
                   tarjeta("Vista previa", "Selecciona una imagen cargada para inspeccionarla antes de procesar.", uiOutput("raster_entrada_controles")),
                   div(class = "bottom-actions", actionButton("ver_vector", "Continuar a parcelas", icon = icon("arrow-right"), class = "btn-primary"))),
                 div(class = "interactive-map-panel", leaflet::leafletOutput("raster_entrada_mapa", height = "620px"),
@@ -649,31 +670,38 @@ ui <- fluidPage(
                 conditionalPanel("input.tipo == 'phantom'", textInput("id_phantom", "Campo ID · RGB convencional", "id")),
                 ayuda_breve("Cada resultado conserva el lote, fecha, ID y parámetros de su ejecución."),
                 conditionalPanel("input.tipo == 'sentera' && input.origen_sentera != 'multibanda'", numericInput("factor", "Factor inter-cámara Sentera", 2.7, min = .01, step = .1)),
-                conditionalPanel("input.tipo == 'phantom'",
+                conditionalPanel("input.tipo == 'phantom' && (input.modo_analisis == 'completo' || (input.grupos_phantom || []).indexOf('altura') >= 0)",
                   selectInput("unidad_altura", "Unidad en el CHM o en DSM y DTM", choices = c("Centímetros (cm)" = "cm", "Metros (m)" = "m")),
                   ayuda_breve("Todas las alturas de salida se expresan en cm. Metros se convierten multiplicando por 100."),
                   numericInput("altura_min", "Altura mínima aceptada · cm", 2.5, min = 0, step = .5),
                   numericInput("altura_max", "Altura máxima aceptada · cm", 100, min = .1, step = 5),
                   checkboxInput("confirmar_altura", "Unidad de altura y referencia vertical verificadas", FALSE))),
-              tarjeta("Variables y segmentación", "Las opciones espectrales cambian según el sensor.",
+              tarjeta("Variables y segmentación", "Los grupos y la máscara se eligen antes de cargar archivos, en Datos.",
+                textOutput("mascara_actual"),
+                actionButton("cambiar_analisis", "Cambiar análisis y máscara", icon = icon("sliders")),
                 conditionalPanel("input.tipo == 'sentera'",
+                  conditionalPanel("input.modo_analisis == 'completo' || (input.grupos_sentera || []).indexOf('indices') >= 0",
                   checkboxGroupInput("indices", "Índices del análisis",
-                    choices = c("NDVI", "NDRE", "GNDVI", "CIRE", "CVI", "NDWI", "OSAVI", "SAVI", "EVI"), selected = c("NDVI", "NDRE", "GNDVI", "CIRE", "CVI", "NDWI")),
-                  radioButtons("metodo", "Máscara NDVI", c("Otsu", "Manual"), inline = TRUE),
+                    choices = c("NDVI", "NDRE", "GNDVI", "CIRE", "CVI", "NDWI", "OSAVI", "SAVI", "EVI"), selected = c("NDVI", "NDRE", "GNDVI", "CIRE", "CVI", "NDWI"))),
+
                   conditionalPanel("input.metodo == 'Manual'", numericInput("umbral", "Umbral NDVI", .3, min = -1, max = 1, step = .01)),
                   ayuda_breve("OSAVI, SAVI y EVI requieren verificar la escala radiométrica."),
-                  conditionalPanel("input.origen_sentera == 'multibanda'", ayuda_breve("Multibanda Sentera utiliza valores ya corregidos: no reaplica matrices ni factor 2.7. NDVI, NDRE y GNDVI disponibles al iniciar. Añade otros en Catálogo y fórmulas. NDVI siempre genera la máscara; su casilla controla las estadísticas de NDVI. OSAVI, SAVI y EVI son exploratorios hasta validar la escala."))),
-                conditionalPanel("input.tipo == 'phantom'",
+                  conditionalPanel("input.origen_sentera == 'multibanda'", ayuda_breve("Multibanda Sentera utiliza valores ya corregidos: no reaplica matrices ni factor 2.7. NDVI, NDRE y GNDVI disponibles al iniciar. Añade otros en Catálogo y fórmulas. NDVI genera la máscara cuando eliges Otsu o umbral manual; con muestras solo se calcula si lo seleccionas. OSAVI, SAVI y EVI son exploratorios hasta validar la escala."))),
+                conditionalPanel("input.tipo == 'phantom' && (input.tipo == 'sentera' || input.modo_analisis == 'completo' || (input.grupos_phantom || []).some(function(x){return x != 'altura';}))",
+                  conditionalPanel("input.modo_analisis == 'completo' || (input.grupos_phantom || []).indexOf('indices') >= 0",
                   checkboxGroupInput("indices_rgb", "Índices del análisis",
                     choices = names(indices_originales_cipat("phantom")),
-                    selected = names(indices_originales_cipat("phantom"))),
-                  ayuda_breve("ExG genera la máscara; su casilla controla sus estadísticas. Añade otros índices en Catálogo y fórmulas."),
-                  radioButtons("metodo_phantom", "Máscara RGB por ExG", c("Otsu", "Manual"), inline = TRUE),
+                    selected = names(indices_originales_cipat("phantom")))),
+                  ayuda_breve("ExG genera la máscara con Otsu o umbral manual; con muestras solo se calcula si lo seleccionas. Añade otros índices en Catálogo y fórmulas."),
+
                   conditionalPanel("input.metodo_phantom == 'Manual'", numericInput("umbral_phantom", "Umbral ExG · unidades RGB originales", 0, step = 1)),
                   numericInput("escala_rgb", "Escala RGB · valor máximo", 255, min = 1, step = 1),
-                  checkboxInput("texturas", "Texturas GLCM", FALSE),
-                  conditionalPanel("input.texturas", numericInput("ventana", "Ventana GLCM · píxeles", 5, min = 3, max = 15, step = 2),
+                  conditionalPanel("input.modo_analisis == 'completo' || (input.grupos_phantom || []).indexOf('texturas') >= 0", numericInput("ventana", "Ventana GLCM · píxeles", 5, min = 3, max = 15, step = 2),
                     ayuda_breve("Entropía, contraste y homogeneidad; diez estadísticos por textura. Requiere raster y glcm; 32 niveles de gris y cuatro direcciones."))),
+                conditionalPanel("(input.tipo == 'phantom' && input.metodo_phantom == 'Muestras') || (input.tipo == 'sentera' && input.metodo == 'Muestras')",
+                actionButton("preparar_muestras", "Segmentación por muestras", icon = icon("paintbrush")),
+                textOutput("estado_muestras")),
+                ayuda_breve("Una sola máscara filtra bandas, índices, color y texturas. Altura utiliza su propio filtro CHM."),
                 actionButton("editar_indices", "Catálogo y fórmulas", icon = icon("book-open")),
                 ayuda_breve("Fórmulas independientes por módulo. Los cambios se aplican a la siguiente ejecución."),
                 ayuda_contextual("Segmentación Otsu", "Otsu usa una muestra de hasta 200000 píxeles. Revisa la máscara antes de interpretar cobertura.")),
@@ -735,7 +763,7 @@ ui <- fluidPage(
             p("La portada es una imagen ilustrativa generada. No corresponde a un ensayo ni representa tus resultados."),
             p("El remuestreo alinea rejillas; no corrige desplazamientos físicos entre imágenes.")))
       ),
-      div(class = "page-footer", span("Grupo Papalotla · CIPAT"), span("Versión 4.7.0 · E21"))
+      div(class = "page-footer", span("Grupo Papalotla · CIPAT"), span("Versión 4.8.0"))
     )
   )
 )
@@ -747,6 +775,7 @@ server <- function(input, output, session) {
 
   vectoriales <- registrar_vectoriales_cipat(input, output, session)
   ejemplos <- registrar_ejemplos_cipat(input,output,session,vectoriales,editor,ortomosaicos)
+  muestras <- registrar_muestras_cipat(input, output, session, ortomosaicos$mapas)
   parcelas_seleccionadas <- vectoriales$parcelas
   resultados <- reactiveValues(sentera = NULL, phantom = NULL)
   ultima <- reactive({ req(input$tipo); resultados[[input$tipo]] })
@@ -868,7 +897,7 @@ server <- function(input, output, session) {
     observeEvent(input[[paste0("nav_", destino)]], updateTabsetPanel(session, "secciones", selected = destino))
   })
   botones <- c(comenzar = "archivos", ir_archivos = "archivos", ir_configuracion = "configuracion",
-    ir_resultados = "resultados", continuar_config = "configuracion", revisar_proceso = "proceso", consultar_resultados = "resultados")
+    ir_resultados = "resultados", cambiar_analisis = "archivos", continuar_config = "configuracion", revisar_proceso = "proceso", consultar_resultados = "resultados")
   for (boton in names(botones)) local({
     clave <- boton; destino <- botones[[boton]]
     observeEvent(input[[clave]], updateTabsetPanel(session, "secciones", selected = destino))
@@ -895,37 +924,10 @@ server <- function(input, output, session) {
         unidad = input$unidad_altura, altura_min = input$altura_min, altura_max = input$altura_max,
         escala = input$escala_rgb, texturas = input$texturas, ventana = input$ventana,
         crear_visores = isTRUE(input$crear_visores), assets_visores = normalizePath("www", winslash = "/", mustWork = TRUE))
-      if (es_phantom) p <- preparar_indices_rgb_cipat(p)
-      else p$formulas <- p$formulas[unique(c("NDVI", p$indices))]
-      if (any(vapply(p$formulas, is.null, logical(1)))) stop("Revisa los índices seleccionados en el editor.")
-      requeridos <- c("rgb", "polys", if (!es_phantom && !identical(p$origen_sentera, "multibanda")) "ms" else if (es_phantom) { if (p$fuente_altura == "CHM") "chm" else c("dsm", "dtm") })
-      for (campo in requeridos) {
-        if (!nzchar(p[[campo]]) || !file.exists(p[[campo]])) stop("Selecciona un archivo válido para: ", campo)
-      }
-      clave_bandas <- clave_rgb_cipat(p)
-      mapa_bandas_cipat(p, clave_bandas, terra::nlyr(terra::rast(p$rgb)))
-      if (!es_phantom && !identical(p$origen_sentera, "multibanda")) mapa_bandas_cipat(p, "ms", terra::nlyr(terra::rast(p$ms)))
-      if (!nzchar(p$salida)) stop("Indica una carpeta base de resultados.")
-      if (!nzchar(p$lote) || !nzchar(p$id)) stop("Completa lote y campo ID.")
-      if (is.null(p$fecha) || is.na(p$fecha)) stop("Indica una fecha válida.")
-      if (p$metodo == "Manual" && (is.null(p$umbral) || !is.finite(p$umbral))) stop("Indica un umbral manual válido.")
-      if (!es_phantom) {
-        p <- validar_entrada_sentera(p)
-        if (is.null(p$factor) || !is.finite(p$factor) || p$factor <= 0) stop("El factor debe ser mayor que cero.")
-        if (p$metodo == "Manual" && abs(p$umbral) > 1) stop("El umbral NDVI debe estar entre -1 y 1.")
-      } else {
-        if (!isTRUE(input$confirmar_altura)) stop("Comprueba la unidad de altura y marca la casilla en Configuración.")
-        if (!p$unidad %in% c("cm", "m")) stop("Selecciona la unidad de altura de entrada.")
-        if (!all(is.finite(c(p$altura_min, p$altura_max))) || p$altura_min < 0 || p$altura_max <= p$altura_min) stop("Revisa los límites de altura en cm.")
-        if (is.null(p$escala) || !is.finite(p$escala) || p$escala <= 0) stop("Indica una escala RGB válida.")
-        if (isTRUE(p$texturas)) {
-          faltan <- c("raster", "glcm")[!vapply(c("raster", "glcm"), requireNamespace, logical(1), quietly = TRUE)]
-          if (length(faltan)) stop("Para las texturas, instala: ", paste(faltan, collapse = ", "), ". O desmarca Calcular texturas GLCM.")
-          if (is.null(p$ventana) || !is.finite(p$ventana) || p$ventana %% 2 != 1 || p$ventana < 3 || p$ventana > 15) stop("La ventana GLCM debe ser impar, entre 3 y 15.")
-        }
-      }
-      # El buffer del RGB usa un valor fijo incluso cuando no se calculan texturas.
-      if (!isTRUE(p$texturas)) p$ventana <- 5
+      p$grupos <- grupos_elegidos_cipat(input)
+      p$muestras <- if (identical(p$metodo, "Muestras")) muestras() else NULL
+      p <- validar_plan_cipat(p, confirmar_altura = input$confirmar_altura)
+      if (!nzchar(p$salida)) stop("Selecciona una carpeta de resultados.")
       p$salida <- crear_carpeta_resultados_cipat(p$salida, p$lote, p$fecha,
         if (es_phantom) "RGB" else "Sentera")
       p$log <- archivo_salida_cipat(p, "Proceso", "txt")
@@ -968,44 +970,41 @@ server <- function(input, output, session) {
     if (!length(v)) return("Sin datos")
     paste0(formatC(mean(v), digits = decimales, format = "f"), sufijo)
   }
-  output$etiqueta_cobertura <- renderText({ if (input$tipo == "phantom") "Cobertura RGB · ExG" else "Cobertura NDVI" })
-  output$etiqueta_rasgo <- renderText({ if (input$tipo == "phantom") "Altura P90 · cm" else "NDVI de vegetación" })
+  output$etiqueta_cobertura <- renderText({ "Cobertura verde · máscara elegida" })
+  output$etiqueta_rasgo <- renderText({ if (is.null(ultima())) "Rasgo seleccionado" else etiqueta_eda(resumen_datos_cipat(ultima())$campo_rasgo) })
   output$etiqueta_umbral <- renderText({ if (input$tipo == "phantom") "Umbral ExG" else "Umbral NDVI" })
   output$kpi_parcelas <- renderText({ if (is.null(ultima())) "—" else as.character(nrow(ultima()$tabla)) })
-  output$kpi_cobertura <- renderText({ mostrar_media(if (input$tipo == "phantom") "Plant_ground_cover_image_RGB_pct" else "Plant_ground_cover_image_NDVI_pct", 1, "%") })
-  output$kpi_ndvi <- renderText({ mostrar_media(if (input$tipo == "phantom") "Canopy_height_image_p90" else "NDVI_mean", if (input$tipo == "phantom") 1 else 3) })
-  output$kpi_umbral <- renderText({ if (is.null(ultima())) "—" else formatC(ultima()$umbral, digits = 3, format = "f") })
+  output$kpi_cobertura <- renderText({ mostrar_media(if (!is.null(ultima()) && "Plant_ground_cover_image_Green_pct" %in% names(ultima()$tabla)) "Plant_ground_cover_image_Green_pct" else if (!is.null(ultima()) && "Plant_ground_cover_image_Vegetation_pct" %in% names(ultima()$tabla)) "Plant_ground_cover_image_Vegetation_pct" else if (input$tipo == "phantom") "Plant_ground_cover_image_RGB_pct" else "Plant_ground_cover_image_NDVI_pct", 1, "%") })
+  output$kpi_ndvi <- renderText({ if (is.null(ultima())) "—" else mostrar_media(resumen_datos_cipat(ultima())$campo_rasgo, 3) })
+  output$kpi_umbral <- renderText({ x <- ultima(); if (is.null(x)) "—" else if (identical(x$fuentes$metodo, "Muestras")) "Por muestras" else if (!is.finite(x$umbral)) "No aplica" else formatC(x$umbral, digits = 3, format = "f") })
   output$etiqueta_resultado <- renderUI({
     x <- ultima()
     div(class = "section-heading", h3("Evaluación activa"),
       if (!is.null(x)) span(class = "eyebrow", paste(x$fuentes$lote, x$fuentes$fecha)) else span(class = "eyebrow", "SIN EVALUACIÓN PROCESADA"))
   })
   output$revision_archivos <- renderUI({
-    rutas <- if (input$tipo == "sentera") {
-      if (identical(input$origen_sentera, "multibanda")) c(input$multibanda, parcelas_seleccionadas()$ruta) else c(input$rgb, input$ms, parcelas_seleccionadas()$ruta)
-    }
-      else c(input$rgb_phantom, parcelas_seleccionadas()$ruta, if (input$fuente_altura == "CHM") input$chm else c(input$dsm, input$dtm))
-    estado <- vapply(rutas, function(r) nzchar(normalizar_ruta(r)) && file.exists(normalizar_ruta(r)), logical(1))
-    div(class = "tip", icon("circle-info"), paste(sum(estado), "de", length(rutas), "archivos encontrados para", nombre_modulo(input$tipo)))
+    div(class = "tip", "Los requisitos se validan según los análisis seleccionados al iniciar el procesamiento.")
+  })
+  output$mascara_actual <- renderText({
+    if (!any(grupos_elegidos_cipat(input) != "altura")) return("Altura: filtro CHM; no necesita máscara de vegetación.")
+    paste("Máscara seleccionada:", if (input$tipo == "phantom") input$metodo_phantom else input$metodo)
+  })
+  output$requisitos_analisis <- renderText({
+    g <- grupos_elegidos_cipat(input)
+    if (!length(g)) return("Marca al menos un análisis.")
+    reqs <- c("Polígonos de parcelas", if (any(g != "altura")) if (input$tipo == "phantom") "RGB" else "Imagen Sentera",
+      if ("altura" %in% g) "CHM o DSM y DTM")
+    paste("Necesitas:", paste(reqs, collapse = " + "), ". Prepara las muestras y los parámetros antes de procesar.")
   })
   output$resumen_config <- renderUI({
-    fila <- function(nombre, valor) tags$tr(tags$td(style = "padding:9px 0;color:#7b8b75", nombre),
-      tags$td(style = "padding:9px 0;text-align:right;font-weight:600", valor))
-    es_phantom <- input$tipo == "phantom"
-    tags$table(style = "width:100%;font-size:12px", tags$tbody(
-      fila("Módulo", nombre_modulo(input$tipo)), fila("Evaluación", input$lote), fila("Fecha", as.character(input$fecha)),
-      fila("Parcelas", if (nzchar(parcelas_seleccionadas()$ruta)) basename(parcelas_seleccionadas()$ruta) else "Sin seleccionar"),
-      fila("Campo ID", parcelas_seleccionadas()$id),
-      fila("Asignación RGB", texto_bandas_cipat(ortomosaicos$mapas()[[clave_rgb_cipat(list(tipo = input$tipo, origen_sentera = input$origen_sentera))]])),
-      if (es_phantom) tagList(fila("Fuente de altura", input$fuente_altura), fila("Unidad de entrada", input$unidad_altura),
-        fila("Filtro (cm)", paste(input$altura_min, "a", input$altura_max)), fila("Máscara ExG", input$metodo_phantom),
-        fila("Texturas", if (isTRUE(input$texturas)) "Sí" else "No"),
-        fila("Índices", if (length(input$indices_rgb)) paste(input$indices_rgb, collapse = " · ") else "Sin índices seleccionados"))
-      else tagList(fila("Entrada", if (identical(input$origen_sentera, "multibanda")) "Multibanda Sentera" else "Ortomosaicos RGB y RE/NIR"),
-        fila("Factor inter-cámara", if (identical(input$origen_sentera, "multibanda")) "1 · bandas previamente corregidas" else input$factor), fila("Máscara NDVI", input$metodo),
-        fila("Índices", paste(unique(c("NDVI", input$indices)), collapse = " · ")))))
+    g <- grupos_elegidos_cipat(input)
+    fila <- function(n, v) tags$tr(tags$th(n), tags$td(v))
+    tags$table(class = "table", tags$tbody(fila("Evaluación", input$lote), fila("Fecha", as.character(input$fecha)),
+      fila("Análisis", paste(names(grupos_disponibles_cipat(input$tipo))[unname(grupos_disponibles_cipat(input$tipo)) %in% g], collapse = " · ")),
+      fila("Máscara", if (!any(g != "altura")) "No requerida para CHM" else if (input$tipo == "phantom") input$metodo_phantom else input$metodo),
+      fila("Índices", if (!"indices" %in% g) "No solicitados" else paste(if (input$tipo == "phantom") input$indices_rgb else input$indices, collapse = ", "))))
   })
-  # Una sola agrupación y una sola unión de atributos para las dos vistas.
+  # Atributos compartidos por mapas y exploración; comparación solo en Exploración.
   datos_comparacion <- reactive({ req(ultima()); preparar_eda(ultima()) })
   eda_activa <- reactive(is.null(input$eda_origen) || input$eda_origen=="activo")
   contexto_eda <- reactive({
@@ -1023,34 +1022,14 @@ server <- function(input, output, session) {
   ultima_exploracion <- reactive(contexto_eda()$x)
   datos_testigos <- reactive({ if(!is.null(contexto_eda()$datos)) contexto_eda()$datos else datos_comparacion() })
   marcas_testigos <- registrar_testigos(input,output,session,datos_testigos)
-  agrupacion_comparacion <- reactiveVal("__ninguno__")
   agrupacion_exploracion <- reactive({
-    if(eda_activa()) return(agrupacion_comparacion())
-    k<-input$eda_grupo
-    if(!is.null(k)&&k %in% unname(datos_exploracion()$grupos)) k else "__ninguno__"
-  })
-  cambiar_agrupacion <- function(valor) {
-    opciones <- c("__ninguno__", unname(datos_comparacion()$grupos))
-    if (is.null(valor) || length(valor) != 1L || !valor %in% opciones) return()
-    if (!identical(isolate(agrupacion_comparacion()), valor)) agrupacion_comparacion(valor)
-    if (!identical(isolate(input$grupo_resultados), valor)) updateSelectInput(session, "grupo_resultados", selected = valor)
-    if (eda_activa() && !identical(isolate(input$eda_grupo), valor)) updateSelectInput(session, "eda_grupo", selected = valor)
-  }
-  observeEvent(input$grupo_resultados, cambiar_agrupacion(input$grupo_resultados), ignoreNULL = TRUE)
-  observeEvent(input$eda_grupo, {if(eda_activa()) cambiar_agrupacion(input$eda_grupo)}, ignoreNULL = TRUE)
-  observeEvent(datos_comparacion(), {
-    actual <- isolate(agrupacion_comparacion())
-    if (!actual %in% c("__ninguno__", unname(datos_comparacion()$grupos))) actual <- "__ninguno__"
-    cambiar_agrupacion(actual)
+    k <- input$eda_grupo
+    if (!is.null(k) && k %in% unname(datos_exploracion()$grupos)) k else "__ninguno__"
   })
   output$resultados_contenido <- renderUI({
     x <- ultima()
     if (is.null(x)) return(tagList(div(class = "card empty-state", icon("chart-simple"),
       h3(nombre_modulo(input$tipo)), p("Procesa una evaluación o usa Abrir Excel para consultar un resultado guardado.")), integracion_ui()))
-    datos_vista <- datos_comparacion()
-    variables <- variables_eda(datos_vista$tabla)
-    grupo_actual <- isolate(agrupacion_comparacion())
-    if (!grupo_actual %in% unname(datos_vista$grupos)) grupo_actual <- "__ninguno__"
     tagList(div(class="results-meta-strip",
       div(icon("seedling"),span("Lote"),strong(resumen_texto_cipat(x$fuentes$lote))),
       div(icon("calendar-days"),span("Fecha"),strong(resumen_texto_cipat(x$fuentes$fecha))),
@@ -1081,14 +1060,6 @@ server <- function(input, output, session) {
             div(class = "bottom-actions", actionButton("generar_visores", "Generar visores HTML", icon = icon("globe"), class = "btn-primary"), uiOutput("descarga_visores_ui")),
             div(class = "panel-text", textOutput("estado_visores")),
             ayuda_breve("Descomprime el ZIP y abre index.html. Conserva la carpeta recursos junto a los HTML. Las imágenes incluidas son vistas reducidas; el ZIP no incluye los TIFF originales."))),
-        tabPanel("Comparación", div(class = "workspace-split",
-          div(class = "tool-panel", div(class = "tool-heading", icon("sliders"), "Comparación"),
-            selectInput("variable_grafica", "Variable", choices = variables),
-            selectInput("grupo_resultados", "Agrupación", c("Por parcela" = "__ninguno__", datos_vista$grupos), selected = grupo_actual),
-            ayuda_breve("La agrupación se comparte con Exploración. Por grupo se muestra la media de sus parcelas y ±1 desviación estándar, disponible desde n=2."),
-            uiOutput("tg_resultados_ui"),
-            if (!is.null(datos_vista$aviso)) div(class = "tip", datos_vista$aviso)),
-          div(class = "plot-panel", uiOutput("grafica_variable_ui")))),
         tabPanel("Tabla HTP", ayuda_contextual("Consultar la tabla", "Busca parcelas y desplázate horizontalmente para consultar las variables."), DT::DTOutput("tabla")),
         tabPanel("Calidad de datos", uiOutput("resumen_criterio"), DT::DTOutput("resumen_revision_tabla")),
         tabPanel("Archivos", uiOutput("resumen_archivos"), integracion_ui()))),
@@ -1128,25 +1099,6 @@ server <- function(input, output, session) {
   registrar_productos_cipat(input, output, session, ultima, datos_comparacion)
   registrar_mapa_cipat(input, output, session, ultima, datos_comparacion)
   registrar_exploracion(input, output, session, ultima_exploracion, datos_exploracion, agrupacion_exploracion, marcas_testigos)
-  puntos_resultados <- reactiveVal(NULL)
-  output$grafica_variable_ui <- renderUI({
-    req(input$variable_grafica);d<-datos_comparacion();df<-d$tabla;req(input$variable_grafica %in% names(df))
-    grupo<-if(agrupacion_comparacion() %in% unname(d$grupos))as.character(df[[agrupacion_comparacion()]]) else NULL
-    n<-nrow(datos_plot_comparacion(df[[input$variable_grafica]],as.character(df$id),grupo,eda_marcas(df,marcas_testigos()),eda_meta_puntos(df),max(1L,nrow(df))))
-    eda_plot_interactivo("grafica_variable","hover_resultados","ficha_resultados",height=paste0(max(430,210+n*19),"px"))
-  })
-  output$grafica_variable <- renderPlot({
-    req(ultima(), input$variable_grafica)
-    d <- datos_comparacion()
-    df <- d$tabla; req(input$variable_grafica %in% names(df), is.numeric(df[[input$variable_grafica]]))
-    v <- df[[input$variable_grafica]]
-    validate(need(any(is.finite(v)), "No hay valores disponibles para esta variable."))
-    campo <- agrupacion_comparacion()
-    grupo <- if (campo %in% unname(d$grupos)) as.character(df[[campo]]) else NULL
-    if (!is.null(grupo)) grupo[is.na(grupo) | !nzchar(trimws(grupo))] <- "Sin grupo informado"
-    puntos_resultados(plot_comparacion_eda(v, as.character(df$id), grupo, etiqueta_eda(input$variable_grafica),
-      limite=max(1L,nrow(df)),orden="desc",marcas=eda_marcas(df,marcas_testigos()),meta=eda_meta_puntos(df)))
-  },res=96)
-  eda_registrar_hover(input,output,"hover_resultados","ficha_resultados",puntos_resultados,c("Variable"="Variable","Grupo / parcela"="Nombre","Genotipo"="Genotipo","Media / valor"="Media","Desviación estándar"="DE","Valores válidos"="N","Sin datos"="Sin_datos","Parcelas"="IDs","Repeticiones"="Repeticiones","Identificación"="Tipo"),"Comparación del ensayo")
+
 }
 shinyApp(ui, server)

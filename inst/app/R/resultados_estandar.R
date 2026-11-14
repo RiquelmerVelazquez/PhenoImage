@@ -39,19 +39,20 @@ normalizar_resultados_cipat <- function(d, sensor = "integrado") {
   altura <- grep("^Canopy_height_image_", n, value = TRUE)
   cov_n <- paste0("Plant_ground_cover_image_NDVI_", c("pct", "veg_area_m2", "polygon_area_m2", "valid_area_pct"))
   cov_r <- paste0("Plant_ground_cover_image_RGB_", c("pct", "veg_area_m2", "polygon_area_m2", "valid_area_pct"))
+  cov_m <- grep("^Plant_ground_cover_image_(Muestras|Vegetation|Green|Dry|Bare_soil|Total)_", n, value = TRUE)
   pref_color <- c("HSB_Hue", "HSB_Saturation", "HSB_Brightness", "DGCI", "Lab_L", "Lab_a", "Lab_b")
   color <- unlist(lapply(pref_color, function(p) grep(paste0("^", p, "_"), n, value = TRUE)), use.names = FALSE)
   textura <- unlist(lapply(c("RGB_Entropy", "RGB_Contrast", "RGB_Homogeneity"),
     function(p) grep(paste0("^", p, "(_|$)"), n, value = TRUE)), use.names = FALSE)
   # Métricas históricas se conservan con su nombre: nunca se etiqueta Hue angular como HSV.
   color_antiguo <- grep("^(Hue|Saturation|Value)_", n, value = TRUE)
-  resto <- setdiff(n, c(identidad, bandas_s, bandas_r, altura, cov_n, cov_r, color, color_antiguo, textura))
+  resto <- setdiff(n, c(identidad, bandas_s, bandas_r, altura, cov_n, cov_r, cov_m, color, color_antiguo, textura))
   attrs <- resto[startsWith(resto, "Parcela_")]
   metricas <- setdiff(resto, attrs)
   rgb_indices <- c("ExG", "NGRDI", "VARI", "GLI", "RGBVI", "GCC", "NGBDI", "TGI", "BCC", "RCC", "BGI", "BRVI", "GR", "GB", "ERVI", "MVARI", "VEG")
   ind_r <- metricas[sub("_(sum|mean|median|sd|cv|min|max|p[0-9]+)$", "", metricas) %in% rgb_indices]
   ind_s <- setdiff(metricas, ind_r)
-  orden <- unique(c(identidad, attrs, bandas_s, ind_s, bandas_r, ind_r, altura, cov_n, cov_r,
+  orden <- unique(c(identidad, attrs, bandas_s, ind_s, bandas_r, ind_r, altura, cov_n, cov_r, cov_m,
                     color, color_antiguo, textura))
   d[, intersect(orden, names(d)), drop = FALSE]
 }
@@ -81,10 +82,10 @@ color_hsb_lab_cipat <- function(v, hsb_fun = pliman::rgb_to_hsb,
 }
 
 # El CV no es interpretable para un ángulo ni para las coordenadas de intervalo Lab.
-# Se conserva la columna para no romper el esquema; no altera índices ni bandas.
+# Se omite únicamente esta columna; no altera índices ni bandas.
 ajustar_estadisticas_color_cipat <- function(df, nombre) {
   if (nombre %in% c("HSB_Hue", "Lab_L", "Lab_a", "Lab_b") && "cv" %in% names(df)) {
-    df$cv <- NA_real_
+    df$cv <- NULL
   }
   df
 }
@@ -98,13 +99,13 @@ documentar_rasgos_color_cipat <- function(wb, p) {
       "pliman::rgb_to_lab: columna L; incluye rgb_to_srgb del propio paquete",
       "pliman::rgb_to_lab: columna a; verde negativo, rojo positivo",
       "pliman::rgb_to_lab: columna b; azul negativo, amarillo positivo",
-      "Verde con máscara ExG; 32 niveles; ventana configurada; promedio de 4 direcciones a distancia 1"),
-    Nota = c("CV=NA: magnitud angular; se conservan los demás estadísticos lineales solicitados, con cautela en discontinuidades del tono",
+      "Verde con la máscara elegida; 32 niveles; ventana configurada; promedio de 4 direcciones a distancia 1"),
+    Nota = c("CV omitido: magnitud angular; se conservan los demás estadísticos lineales solicitados, con cautela en discontinuidades del tono",
       "Los valores no finitos del paquete (p. ej. negro) se exportan como NoData", "",
       "No se recorta; uso previsto en vegetación verde; no equivale a concentración de clorofila",
-      "CV=NA: coordenada de intervalo; la transformación es la del paquete, sin conversión alternativa",
-      "CV=NA: coordenada con signo y cero convencional; no se usa abs(media)",
-      "CV=NA: coordenada con signo y cero convencional; no se usa abs(media)",
+      "CV omitido: coordenada de intervalo; la transformación es la del paquete, sin conversión alternativa",
+      "CV omitido: coordenada con signo y cero convencional; no se usa abs(media)",
+      "CV omitido: coordenada con signo y cero convencional; no se usa abs(media)",
       "na_opt=any: ventanas con NA se excluyen; rango de cuantización observado, registrado en Parametros"),
     Implementacion = c(rep(paste0("pliman ", version), 7), "GLCM: implementación conservada"),
     Referencia = c(rep("https://nepem-ufsc.github.io/pliman/reference/utils_colorspace.html", 3),

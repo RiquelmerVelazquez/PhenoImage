@@ -54,15 +54,34 @@ eda_ficha <- function(fila,hover,campos,titulo='Datos del punto') {
     shiny::tags$dl(lapply(names(campos),function(n) shiny::tagList(shiny::tags$dt(n),shiny::tags$dd(fmt(f[[campos[[n]]]]))))))
 }
 eda_registrar_hover <- function(input,output,id_hover,id_ficha,puntos,campos,titulo='Datos del punto') {
-  output[[id_ficha]] <- shiny::renderUI({
-    h <- input[[id_hover]]; d <- puntos()
-    if(is.null(h) || is.null(d) || !nrow(d)) return(NULL)
+  # Conservar la ficha mientras el cursor sigue en el mismo punto. El ratón
+  # no debe reconstruir continuamente el HTML ni alterar las dimensiones del gráfico.
+  ficha <- shiny::reactiveVal(NULL)
+  shiny::observeEvent(list(input[[id_hover]], puntos()), {
+    h <- input[[id_hover]]; d <- puntos(); anterior <- shiny::isolate(ficha())
+    if (is.null(h) || is.null(d) || !nrow(d)) {
+      if (!is.null(anterior)) ficha(NULL)
+      return()
+    }
     p <- shiny::nearPoints(d,h,xvar='x',yvar='y',threshold=18,maxpoints=1)
-    eda_ficha(p,h,campos,titulo)
+    # Un margen de salida algo mayor evita parpadeo en el borde de un punto.
+    if (!is.null(anterior)) {
+      cerca <- shiny::nearPoints(anterior$fila,h,xvar='x',yvar='y',threshold=24,maxpoints=1)
+      i <- match(rownames(anterior$fila),rownames(d))
+      vigente <- length(i)==1L && !is.na(i) && identical(d[i,,drop=FALSE], anterior$fila)
+      if (vigente && nrow(cerca) && (!nrow(p) || identical(p, anterior$fila))) return()
+    }
+    if (!nrow(p)) { if (!is.null(anterior)) ficha(NULL); return() }
+    if (is.null(anterior) || !identical(p,anterior$fila)) ficha(list(fila=p,hover=h))
+  }, ignoreNULL=FALSE)
+  output[[id_ficha]] <- shiny::renderUI({
+    f <- ficha(); if (is.null(f)) return(NULL)
+    eda_ficha(f$fila,f$hover,campos,titulo)
   })
 }
+
 eda_plot_interactivo <- function(id,hover,ficha,height='570px') {
-  shiny::div(class='eda-graph-scroll',shiny::div(class='eda-interactive-plot',shiny::plotOutput(id,height=height,hover=shiny::hoverOpts(hover,delay=70,delayType='debounce',nullOutside=TRUE)),shiny::uiOutput(ficha)))
+  shiny::div(class='eda-graph-scroll',shiny::div(class='eda-interactive-plot',shiny::plotOutput(id,height=height,hover=shiny::hoverOpts(hover,delay=100,delayType='throttle',nullOutside=TRUE)),shiny::uiOutput(ficha)))
 }
 registrar_testigos <- function(input,output,session,datos) {
   estado <- shiny::reactiveVal(list(campo='id',valores=character(),color='#D18A20'))
@@ -82,7 +101,7 @@ registrar_testigos <- function(input,output,session,datos) {
     nuevo<-list(campo=campo,valores=intersect(e$valores,valores(campo)),color=e$color)
     if(!identical(e,nuevo)) estado(nuevo)
   },ignoreNULL=TRUE,priority=20)
-  for(contexto in c('resultados','eda')) local({
+  for(contexto in 'eda') local({
     ctx<-contexto;pref<-paste0('tg_',ctx)
     output[[paste0(pref,'_ui')]]<-shiny::renderUI({
       ks<-opciones();e<-shiny::isolate(estado());campo<-eda_campo_equivalente(datos()$tabla,e$campo)
@@ -116,12 +135,30 @@ registrar_testigos <- function(input,output,session,datos) {
       co<-input[[paste0(pref,'_color')]]
       if(length(co)==1 && grepl('^#[[:xdigit:]]{6}$',co)){e<-estado();e$color<-co;if(!identical(e,estado()))estado(e)}
     },ignoreNULL=TRUE)
-    shiny::observeEvent(estado(),{
-      e<-estado();shiny::updateSelectInput(session,paste0(pref,'_campo'),selected=e$campo)
-      shiny::updateSelectizeInput(session,paste0(pref,'_valores'),choices=valores(e$campo),selected=e$valores,server=FALSE)
-      # El color HTML no es una dependencia externa ni un paquete adicional.
-      session$sendCustomMessage('cipat-testigo-color',list(id=paste0(pref,'_color'),value=e$color))
+    enviados <- new.env(parent=emptyenv())
+    shiny::observeEvent(list(estado(), opciones()), {
+      e <- estado(); ks <- opciones(); opciones_valores <- valores(e$campo)
+      campo_cliente <- shiny::isolate(input[[paste0(pref,'_campo')]])
+      valores_cliente <- shiny::isolate(input[[paste0(pref,'_valores')]])
+      color_cliente <- shiny::isolate(input[[paste0(pref,'_color')]])
+      if (!identical(enviados$campos,ks)) {
+        shiny::updateSelectInput(session,paste0(pref,'_campo'),choices=ks,selected=e$campo)
+      } else if (!identical(campo_cliente,e$campo)) {
+        shiny::updateSelectInput(session,paste0(pref,'_campo'),selected=e$campo)
+      }
+      # Reconstruir opciones solo si cambió el campo o el conjunto de datos.
+      if (!identical(enviados$campo,e$campo) || !identical(enviados$opciones,opciones_valores)) {
+        shiny::freezeReactiveValue(input,paste0(pref,'_valores'))
+        shiny::updateSelectizeInput(session,paste0(pref,'_valores'),choices=opciones_valores,selected=e$valores,server=FALSE)
+      } else if (!setequal(as.character(valores_cliente),e$valores)) {
+        shiny::updateSelectizeInput(session,paste0(pref,'_valores'),selected=e$valores)
+      }
+      if (!identical(enviados$color,e$color) && !identical(color_cliente,e$color))
+        session$sendCustomMessage('cipat-testigo-color',list(id=paste0(pref,'_color'),value=e$color))
+      enviados$campos <- ks; enviados$campo <- e$campo
+      enviados$opciones <- opciones_valores; enviados$color <- e$color
     },ignoreNULL=TRUE)
+
   })
   estado
 }

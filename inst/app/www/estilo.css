@@ -1044,3 +1044,15 @@ h2,.page-heading h2 { font-size:24px; }
 .example-dataset-row > strong { font-size:13px; font-weight:600; color:var(--green-dark); }
 .example-dataset-row > .context-help.help-icon { margin-left:auto; flex-shrink:0; }
 .example-details { padding-top:12px; margin-top:4px; }
+
+/* E26: mismo acabado de los paneles de herramientas en Exploración. */
+.analysis-layout > .analysis-tools > .card {
+  background: #f7f9f5;
+  border: 1px solid #dce6d5;
+  border-top: 3px solid var(--green);
+  border-radius: 4px;
+}
+
+/* E27: la ficha flotante no intercepta el cursor ni se atenúa en cada movimiento. */
+.eda-interactive-plot > .shiny-html-output { pointer-events: none; }
+.eda-interactive-plot > .shiny-html-output.recalculating { opacity: 1; }

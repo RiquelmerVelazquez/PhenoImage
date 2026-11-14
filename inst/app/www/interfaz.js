@@ -44,9 +44,19 @@
   document.addEventListener('DOMContentLoaded', function () {
     setupPanels();
     updateHomeLayout();
-    new MutationObserver(function () {
-      setupPanels();
-      updateHomeLayout();
+    var pendingLayout = false;
+    new MutationObserver(function (records) {
+      var relevant = records.some(function (record) {
+        var target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+        return !target || !target.closest('.eda-interactive-plot, .selectize-control, .testigo-controls');
+      });
+      if (!relevant || pendingLayout) return;
+      pendingLayout = true;
+      window.requestAnimationFrame(function () {
+        pendingLayout = false;
+        setupPanels();
+        updateHomeLayout();
+      });
     }).observe(document.querySelector('.workspace') || document.body, {
       childList: true, subtree: true, attributes: true, attributeFilter: ['class']
     });

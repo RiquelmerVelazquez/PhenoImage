@@ -1,29 +1,20 @@
-# Para usuarios nuevos: no requiere el paquete cipat anterior.
-# Abre este archivo en RStudio, pulsa Source y elige DESCRIPTION de PhenoImage.
+# OPCIONAL: actualizar el paquete instalado para seguir usando phenoImage::run_app().
+# Detén la app y usa Session > Restart R antes de ejecutar este archivo con Source.
 local({
-  if (getRversion() < "4.1.0") stop("Se requiere R 4.1 o posterior.")
-  if ("phenoImage" %in% loadedNamespaces()) stop("Reinicia R con Session > Restart R y vuelve a ejecutar este instalador.")
-  message("Selecciona DESCRIPTION dentro de la carpeta PhenoImage descomprimida.")
-  chosen <- file.choose()
-  if (basename(chosen) != "DESCRIPTION") stop("Selecciona el archivo DESCRIPTION del proyecto PhenoImage.")
-  package_dir <- normalizePath(dirname(chosen), winslash = "/", mustWork = TRUE)
-  description <- read.dcf(chosen)
-  if (description[1,"Package"] != "phenoImage" || description[1,"Version"] != "4.7.0.22") stop("Selecciona el paquete phenoImage 4.7.0.22.")
-  # Conservar ejemplos anteriores si existen. Nunca son un requisito de instalación.
-  cache <- file.path(tools::R_user_dir("PhenoImage", "data"), "ejemplos")
-  for (previous in c("phenoImage", "cipat")) {
-    origin <- system.file("app", "ejemplos", package = previous)
-    if (!nzchar(origin)) next
-    for (module in c("rgb", "sentera")) {
-      source <- file.path(origin,module); target <- file.path(cache,module)
-      if (dir.exists(source) && !file.exists(target)) {
-        dir.create(cache,recursive=TRUE,showWarnings=FALSE)
-        if (!file.copy(source,cache,recursive=TRUE)) warning("No se pudo conservar el ejemplo ",module,"; es opcional y puedes instalarlo después.")
-      }
-    }
+  rutas <- Filter(function(x) is.character(x) && length(x) == 1L && file.exists(x),
+    lapply(sys.frames(), function(e) e$ofile))
+  raiz <- if (length(rutas)) dirname(normalizePath(tail(rutas, 1)[[1]], winslash = "/")) else getwd()
+  if (!file.exists(file.path(raiz, "DESCRIPTION"))) {
+    message("Selecciona DESCRIPTION de PhenoImage 4.8.0."); raiz <- dirname(file.choose())
   }
-  utils::install.packages(package_dir, repos = NULL, type = "source")
-  if (!requireNamespace("phenoImage",quietly=TRUE) || utils::packageVersion("phenoImage") != "4.7.0.22") stop("No se instaló la versión esperada. Revisa los mensajes de R.")
-  phenoImage::install_dependencies(textures = TRUE)
-  message("PhenoImage instalado. Para abrirlo: phenoImage::run_app(). Los ejemplos son opcionales.")
+  if (!file.exists(file.path(raiz, "inst", "app", "R", "segmentacion_muestras.R"))) stop("Selecciona la carpeta PhenoImage 4.8.0 completa.")
+  if ("phenoImage" %in% loadedNamespaces()) stop("Primero reinicia R: Session > Restart R.")
+  archivo <- tempfile("phenoImage_4.8.0_", fileext = ".tar.gz")
+  anterior <- getwd(); on.exit({setwd(anterior); unlink(archivo)}, add = TRUE)
+  setwd(dirname(raiz))
+  utils::tar(archivo, files = basename(raiz), compression = "gzip", tar = "internal")
+  setwd(anterior)
+  utils::install.packages(archivo, repos = NULL, type = "source")
+  if (!requireNamespace("phenoImage", quietly = TRUE) || as.character(utils::packageVersion("phenoImage")) != "4.8.0") stop("No se confirmó la actualización; revisa el mensaje de instalación.")
+  message("PhenoImage 4.8.0 instalado. Ejecuta phenoImage::run_app(). Los ejemplos existentes se conservan.")
 })

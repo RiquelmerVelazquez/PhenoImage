@@ -1,0 +1,157 @@
+PHENOIMAGE 4.8.0 - VERSIÓN UNIFICADA
+
+VISTAS DE EXPLORACIÓN (INTEGRADAS DESDE E28)
+En Exploración, el selector «Vista de variables» ofrece:
+- Básica (predeterminada): promedios de los rasgos, altura media y P90,
+  y porcentajes de cobertura evaluados. Oculta sumas, mínimos, máximos,
+  desviaciones, otros percentiles y métricas auxiliares de área válida.
+  El seco no evaluado no se presenta como una variable principal.
+- Personalizada: selecciona las variables que quieres mostrar; puedes incluir
+  cualquier estadístico numérico disponible, incluidos los de la vista avanzada.
+  La lista comienza con las variables básicas. Puedes vaciarla y elegir otras;
+  si queda vacía se muestra un aviso para que selecciones al menos una.
+- Avanzada: todos los estadísticos numéricos disponibles, como antes.
+
+La vista filtra los dos selectores de Relación X–Y y el selector principal
+usado por Comparación, Distribución y Resumen. Conserva una selección si sigue
+visible; si deja de estarlo, elige una variable disponible. No reconstruye
+el panel completo al cambiar de vista. Los nombres visibles usan «promedio»;
+las columnas técnicas y los archivos guardados conservan sus nombres.
+
+Cambiar de vista NO cambia el procesamiento, la tabla HTP, el Excel o los TIFF.
+No necesitas procesar nuevamente una evaluación para consultar otra vista.
+Los conjuntos antiguos sin promedios pueden consultarse en Avanzada.
+
+
+MEJORAS CONSERVADAS DE E27
+- Distribución por grupo identifica su eje horizontal según la agrupación:
+  por ejemplo, Repetición para Rep. Los grupos cortos se leen horizontalmente.
+- Las marcas inferiores del histograma son valores de las parcelas testigo;
+  se añade una explicación explícita debajo del eje.
+- Seleccionar testigos o cambiar su color ya no reconstruye la lista completa
+  de opciones. Cambiar el campo identificador sí actualiza las opciones.
+- La ficha de un punto se conserva mientras el cursor sigue cerca del mismo
+  punto; cambia al seleccionar otro y desaparece al abandonar su proximidad.
+- Los cambios de fichas y listas no disparan el recorrido general de paneles.
+- Se conservan las coberturas y el diseño de E25/E26.
+
+CAMBIOS DE INTERFAZ
+- Comparación permanece únicamente en Exploración; se retira de Resultados.
+- Comparación, Distribución y Resumen muestran el selector «Variable».
+- Solo Relación X–Y muestra «Variable X», «Variable Y» y el nivel de puntos.
+- Orden, elementos visibles y Comparación PNG se muestran en Comparación.
+- Cambiar de pestaña conserva las variables y agrupación seleccionadas.
+- El panel de controles de Exploración usa el fondo verde suave de Resultados.
+- Se conservan los cálculos y la clase seca opcional de E25.
+
+ABRIR
+1. Detén la app anterior y reinicia R.
+2. Descomprime TODO el ZIP en una carpeta nueva.
+3. Abre INICIAR_PHENOIMAGE.R en RStudio y pulsa Source. La barra debe indicar 4.8.0.
+Los ejemplos instalados y tus resultados anteriores se conservan fuera de esta carpeta.
+No se modifica GitHub ni se publican versiones desde este lanzador.
+
+Si usas phenoImage::run_app(), ese comando abre el paquete instalado.
+Ejecuta INSTALAR_PHENOIMAGE.R con Source UNA VEZ después de reiniciar R.
+Después puedes seguir usando phenoImage::run_app() como antes.
+No hace falta reinstalar dependencias que ya funcionaban con E23.
+
+ANTES DE CARGAR ARCHIVOS
+En Datos, elige Análisis completo o Personalizar análisis.
+Completo selecciona todos los grupos disponibles del módulo. Los índices
+individuales se eligen después en Parámetros, como en versiones anteriores.
+RGB: bandas, índices, cobertura, altura, color y texturas.
+Sentera: bandas, índices y cobertura. Sentera NO tiene opción de CHM.
+Completo RGB incluye texturas GLCM; si no las necesitas, usa Personalizar.
+
+ENTRADAS SEGÚN LA SELECCIÓN
+- Solo bandas / índices / cobertura / color / texturas RGB: RGB y parcelas.
+- Solo altura: CHM y parcelas, o DSM + DTM y parcelas. No requiere RGB.
+- RGB y altura: se piden ambas fuentes.
+- Sentera espectral: multibanda corregida de cinco bandas, o el flujo existente
+  de ortomosaicos separados RGB y RE/NIR. Se conservan sus fórmulas y correcciones.
+- Sentera con solo cobertura POR MUESTRAS: los canales RGB bastan. Puedes usar
+  el formato de ortomosaicos separados y cargar únicamente RGB; RE/NIR no se exige.
+- Todos los análisis necesitan polígonos e ID únicos para los resultados por parcela.
+- Las imágenes necesitan CRS proyectado en metros.
+
+ELEGIR UNA SOLA MÁSCARA
+En Datos, antes de cargar, elige:
+Sentera: NDVI/Otsu, NDVI con umbral manual o Por muestras.
+RGB: ExG/Otsu, ExG con umbral manual o Por muestras.
+En Parámetros se ajusta el umbral manual y se preparan las muestras.
+La selección de máscara se conserva al cargar los ejemplos.
+
+La máscara elegida se usa en TODAS las estadísticas de bandas e índices
+seleccionados, y en color/texturas cuando se solicitan. NO se calculan dos
+versiones de cada estadístico. Las fórmulas y los estadísticos no cambian;
+cambian los píxeles incluidos cuando eliges otra máscara.
+La altura mantiene su filtro CHM mínimo/máximo independiente, sin exigir RGB.
+
+MUESTRAS
+En Parámetros pulsa Segmentación por muestras. Elige dos clases (verde y suelo) o activa «Incluir material vegetal seco»
+para trabajar con tres clases. Marca zonas homogéneas: mínimo dos zonas de cada
+clase elegida, máximo 60 en total. En dos clases NO se requieren zonas secas.
+Activar/desactivar la clase seca invalida la vista previa y la aplicación del
+modelo; vuelve a generar y aplicar. Desactivarla retira las muestras secas.
+Incluye diferentes tonos de verde, pasto claro/oscuro y condiciones de sombra;
+no incluyas suelo dentro de las muestras de vegetación.
+Selecciona con un rectángulo; Añadir zona guarda la muestra. Puedes acercar
+la imagen con una selección y Acercar a selección.
+Genera la vista previa, revisa varias parcelas y pulsa Aplicar máscara.
+Cada edición exige generar y aplicar de nuevo. El botón Desactivar muestras
+cambia a Otsu; cerrar la ventana no aplica muestras que no hayas confirmado.
+Con Por muestras seleccionado, si no hay un modelo aplicado el análisis se
+bloquea con un mensaje: nunca se sustituye silenciosamente por Otsu.
+
+Guardar muestras CSV permite conservar y recuperar el entrenamiento. Los CSV
+que guardaste en E23/E24 son compatibles si usas la misma imagen, ruta, fecha de
+modificación y asignación de bandas. Se releen los píxeles del archivo original.
+Las muestras son propias de cada módulo e imagen; no se transfieren automáticamente.
+
+RESULTADOS Y NOMBRES EN INGLÉS
+Con Cobertura seleccionada:
+- Otsu y umbral manual: Plant_ground_cover_image_Green_pct.
+  Su complemento es fondo (puede incluir suelo y material seco); no se reporta
+  como suelo descubierto ni se inventa una cobertura seca o total.
+- Por muestras: cuatro porcentajes con el prefijo Plant_ground_cover_image_:
+  Green_pct: vegetación verde.
+  Dry_pct: material vegetal seco; NA/no evaluado si se eligieron dos clases.
+  Bare_soil_pct: suelo clasificado.
+  Total_pct: verde + seco con tres clases; igual a verde con dos clases.
+- En tres clases, verde + seco + suelo = 100 % del área válida.
+  En dos clases, verde + suelo = 100 % del área válida. No entrenar la clase
+  seca NO demuestra ausencia de material seco: revisa antes la imagen.
+- Todos los porcentajes comparten el área válida como denominador. NoData se
+  excluye, no se convierte en suelo. Una parcela sin píxeles válidos tiene
+  porcentajes NA. Se conserva el ID original de cada parcela.
+- También se exportan áreas por clase, área de la parcela y porcentaje de área
+  válida. Para muestras: Green_veg_area_m2, Dry_veg_area_m2,
+  Bare_soil_area_m2, Total_veg_area_m2, polygon_area_m2 y valid_area_pct,
+  todos con el prefijo Plant_ground_cover_image_.
+- Los porcentajes/áreas secas no evaluados se guardan como NA en CSV y celdas
+  vacías en Excel; Parametros registra expresamente que seco no fue evaluado.
+- La máscara elegida filtra bandas, índices, color y texturas SOLO por verde.
+  La altura mantiene su filtro independiente. Sin solicitar Cobertura no se
+  exportan porcentajes adicionales.
+- Mascara_Vegetacion es la máscara binaria verde utilizada para estadísticas.
+  Por muestras se añade Mascara_Clases_Muestras: 0=suelo, 1=verde, 2=seco si se
+  entrenó. El visor y la vista previa usan café, verde y amarillo. La capa de
+  clases muestra la cobertura total en la ficha de parcela; la máscara verde
+  muestra cobertura verde. Ambas proceden de la misma clasificación.
+- CSV y respaldo RDS se guardan antes del Excel. La hoja Productos permite
+  reabrir las capas. Los resultados antiguos conservan compatibilidad de lectura.
+- Los CSV de muestras nuevos conservan si la clase seca estaba activada.
+  Los CSV antiguos se interpretan como dos clases. Revisa las antiguas muestras
+  de «suelo/fondo»: podrían contener material seco, que ahora debe distinguirse.
+- Material vegetal seco describe cobertura visible, no peso de materia seca.
+
+MÉTODO Y REVISIÓN
+El clasificador por muestras conserva E23: distancia mínima a prototipos de
+zonas RGB estandarizadas, hasta 500 píxeles por zona. También en Sentera utiliza
+RGB; no utiliza NIR/RE para aprender las clases. En empates se prioriza suelo, después seco y finalmente verde.
+La vista previa es reducida; la máscara y las estadísticas finales usan la rejilla
+original, con escritura por bloques para limitar memoria.
+La revisión visual que hicimos respalda incluir pasto de distintos tonos, pero
+no constituye una medición independiente de exactitud de clasificación.
+Lee VERIFICACION.txt para las comprobaciones técnicas y sus límites.

@@ -1,15 +1,45 @@
-PHENOIMAGE E22 - CORRECCION DEL INSTALADOR DE EJEMPLOS
+VERIFICACIÓN DE LA VERSIÓN UNIFICADA 4.8.0 - 14 NOVIEMBRE 2026
 
-Causa: ambos ejemplos originales contienen un archivo auxiliar .cpg de cero bytes. E21 rechazaba cualquier archivo vacío.
-Corrección: solo .cpg puede tener cero bytes; imágenes y componentes principales requieren tamaño positivo. Se conservan la verificación de rutas, lista de archivos, tamaño extraído, no sobrescritura implícita y reemplazo controlado. No se inventa la codificación ni se modifican archivos de entrada.
+- Base funcional: E28, que incluye E24–E28.
+- Construcción real con R CMD build: correcta.
+- Instalación real del tar.gz en una biblioteca aislada: correcta.
+- Carga del paquete instalado en las ubicaciones temporal/final: correcta.
+- Pruebas sobre el paquete instalado: archivos completos, clasificación de dos
+  y tres clases, seco opcional, coberturas ponderadas, NA y perfiles de variables
+  con altura media y P90. Correctas.
+- No se ha publicado ni modificado GitHub.
+- La revisión completa de la aplicación en Windows queda pendiente.
 
-Entorno: R 4.5.0/Linux.
-PASS: instalación real de phenoImage 4.7.0.22 en biblioteca nueva.
-PASS: reproducido el error E21 con el ZIP RGB real y su .cpg de cero bytes.
-Ejemplo rgb instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
-Ejemplo sentera instalado. Puedes elegir 'Usar ejemplo' en PhenoImage.
-PASS: ambos ZIP reales instalados; imágenes y shapefiles idénticos por MD5; .cpg vacíos conservados.
-PASS: imagen principal vacía rechazada; datos instalados intactos.
+VERIFICACIÓN FUNCIONAL DE E28 (BASE DE ESTA ENTREGA)
 
-Los ZIP de prueba se construyeron a partir de todos los archivos originales, sin sustituir las imágenes por datos simulados. Se compararon los archivos extraídos con sus originales mediante MD5. La prueba negativa sí usa archivos pequeños simulados para comprobar que una imagen principal vacía sigue siendo rechazada.
-No se ejecutó el análisis completo del usuario en Windows. No cambiaron las fórmulas ni las funciones principales de procesamiento.
+VERIFICACIÓN E28 - 14 NOVIEMBRE 2026
+
+ALCANCE
+Perfiles de visualización Básica/Personalizada/Avanzada en Exploración.
+Altura media y P90 incluidos en Básica. No se modifica el procesamiento.
+
+COMPROBACIONES EJECUTADAS
+- Sintaxis de los 27 archivos R.
+- Catálogo Básica: medias, altura P90 y porcentajes de cobertura evaluados.
+  Excluye sumas, desviaciones, mínimos, altura P75, área válida y seco sin evaluar.
+- Avanzada conserva todo el catálogo numérico anterior, incluidos campos sin
+  valores finitos. Personalizada admite cualquier subconjunto del catálogo y
+  descarta nombres ajenos; permite una selección vacía con aviso.
+- Dataset histórico que solo tiene percentiles sigue accesible en Avanzada.
+- Etiquetas comprensibles: promedio y P90, sin cambiar nombres técnicos.
+- Shiny testServer con los controladores reales de Exploración y testigos:
+  controles y tres perfiles renderizados; cambio de perfil sin regenerar todo
+  el HTML del panel; conservación de X/Y si siguen visibles; sustitución por
+  variables disponibles si quedan ocultas; selección personalizada y vacía;
+  aviso correspondiente y generación real de comparación y relación.
+- Verificación de integridad de la tabla original tras los cambios de vista.
+- Comparación con E27: fuentes de procesamiento y segmentación conservadas
+  salvo identificadores de versión. No se repitieron las pruebas numéricas de
+  esos módulos, porque esta entrega solo cambia la exploración.
+- Identificador 4.8.0, archivos de inicio e integridad del ZIP.
+
+LÍMITES
+Pruebas en Linux con R 4.5.0 y datos sintéticos. No se ha recorrido visualmente
+la interfaz completa en un navegador Windows ni con la evaluación del usuario.
+Los perfiles no constituyen una selección o validación científica de métricas.
+GitHub no se ha modificado.

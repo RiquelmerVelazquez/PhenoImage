@@ -1,70 +1,47 @@
-# PhenoImage
+# PhenoImage 4.8.0
 
-### Fenotipado de forrajes mediante imágenes UAV
+Plataforma local de caracterización fenotípica mediante imágenes UAV.
+**Esta versión unifica las mejoras de E24 a E28. No requiere instalar las
+ediciones anteriores.**
 
-**CIPAT · Centro de Investigación de Pastos Tropicales · Grupo Papalotla**
+## Qué incluye
 
-![CIPAT](inst/app/www/cipat.png)
+| Área | Funcionalidad integrada |
+| --- | --- |
+| Análisis | Completo o personalizado; entradas según los productos solicitados |
+| RGB | Bandas, índices, cobertura, altura, color y texturas seleccionables |
+| Sentera | Bandas, índices y cobertura; multibanda corregida o flujo de entrada existente |
+| Altura | CHM sin exigir RGB; filtro independiente; salida en cm |
+| Segmentación | Otsu, umbral manual o muestras; muestras con verde/suelo o verde/seco/suelo |
+| Coberturas | Green, Dry, Bare_soil y Total; seco no evaluado como NA, no como cero |
+| Estadísticas | Bandas, índices, color y texturas filtrados por la clase verde |
+| Resultados | Resumen, mapas, productos ráster, tabla HTP, calidad y archivos |
+| Exploración | Comparación, distribución, relación X–Y y resumen |
+| Vistas | Básica, Personalizada y Avanzada; altura media y P90 en Básica |
+| Testigos | Selección y color; listas sin reconstrucción innecesaria y fichas estables |
+| Archivos | Excel, CSV, RDS y TIFF; nombres técnicos conservados |
 
-PhenoImage es una aplicación local de R/Shiny para organizar el análisis de imágenes de ensayos de forrajes. Integra módulos para Sentera Double 4K y RGB convencional, con extracción de resultados por parcela y exportación de productos.
+## Actualizar desde una edición anterior
 
-**Versión 4.7.0.22 · E22 · Distribución privada de evaluación.**
-
-## Capacidades
-
-| Área | Productos y funciones |
-|---|---|
-| Multiespectral Sentera | Bandas, índices configurables y cobertura NDVI |
-| RGB | Bandas, índices configurables y cobertura RGB |
-| Estructura | Altura del dosel a partir de CHM o DSM/DTM |
-| Color | HSB, DGCI y CIE-Lab |
-| Texturas | Entropía, contraste y homogeneidad GLCM |
-| Resultados | Tablas individuales e integrada, GeoTIFF y visores interactivos |
-
-Se conservan la interfaz, logos, estilos y módulos de E20. E22 cambia la distribución de los ejemplos y la instalación; no cambia las fórmulas ni las funciones principales de procesamiento. El uso científico requiere validar las entradas, la calibración y los resultados para cada evaluación. El empaquetado no constituye esa validación.
-
-## Requisitos
-
-- R 4.1 o posterior; usa una versión compatible con los paquetes requeridos.
-- RStudio para seguir el procedimiento sencillo de instalación.
-- Internet durante la instalación de dependencias.
-- Espacio en disco y memoria suficientes para los ortomosaicos y sus productos.
-
-El instalador comprueba las dependencias, incluidas `terra`, `sf`, `exactextractr`, `pliman`, `raster` y `glcm`. Si una dependencia no dispone de binario compatible, sigue sus instrucciones de compilación; puede requerir Rtools en Windows o bibliotecas del sistema en Linux.
-
-## Instalación para un usuario nuevo
-
-**No necesitas instalar CIPAT antes.**
-
-1. Solicita acceso al repositorio privado y acepta la invitación.
-2. En GitHub selecciona **Code → Download ZIP** y descomprime todo el archivo.
-3. En RStudio entra a **Session → Restart R** si ya tienes PhenoImage abierto.
-4. Abre `INSTALAR_PHENOIMAGE.R` y presiona **Source**.
-5. En el selector elige `DESCRIPTION` de la carpeta descomprimida de PhenoImage.
-6. Espera a que termine la instalación de la aplicación y las dependencias.
-
-El instalador conserva los ejemplos de instalaciones anteriores si los encuentra, pero no los exige. No copia ni sube archivos del ensayo a GitHub.
-
-## Abrir la aplicación
+1. Detén la aplicación y reinicia R en RStudio: **Session → Restart R**.
+2. Descomprime el paquete completo en una carpeta nueva.
+3. Abre `INSTALAR_PHENOIMAGE.R` y pulsa **Source**.
+4. Ejecuta:
 
 ```r
+phenoImage::install_dependencies()
 phenoImage::run_app()
 ```
 
-La interfaz abre el navegador y los cálculos se ejecutan en tu computadora. Mantén R abierto y usa **Stop** para detener la aplicación. Los resultados se guardan en la carpeta que selecciones dentro de PhenoImage.
+La cabecera debe mostrar **4.8.0**. Los ejemplos instalados se conservan fuera de
+la biblioteca del paquete. No necesitas volver a instalarlos ni recalcular tus
+resultados para cambiar las vistas de Exploración.
 
-También puedes utilizar:
+También puedes abrir directamente `INICIAR_PHENOIMAGE.R` con Source.
 
-```r
-library(phenoImage)
-run_app()
-```
+## Instalar el paquete fuente
 
-Si usas otras aplicaciones con una función llamada `run_app`, prefiere `phenoImage::run_app()` para evitar confusiones.
-
-## Instalación alternativa desde una versión publicada
-
-Si el responsable adjuntó `phenoImage_4.7.0.22.tar.gz` a una **Release** privada, descarga ese archivo. En R:
+Si recibiste `phenoImage_4.8.0.tar.gz`, selecciónalo con:
 
 ```r
 install.packages(file.choose(), repos = NULL, type = "source")
@@ -72,67 +49,20 @@ phenoImage::install_dependencies()
 phenoImage::run_app()
 ```
 
-Selecciona el archivo `.tar.gz` cuando aparezca el selector. La primera línea instala el paquete; la segunda instala sus dependencias necesarias para la aplicación.
+Para instalar desde el ZIP de código de GitHub, descomprime todo y utiliza
+`INSTALAR_PHENOIMAGE.R`; el ZIP del repositorio no se instala directamente como
+un paquete fuente de R.
 
 ## Ejemplos opcionales
 
-Puedes analizar tus propios datos sin descargar ejemplos. El repositorio no incluye ortomosaicos de demostración en su historial de Git.
+Los ortomosaicos, CHM y polígonos de ejemplo se distribuyen por separado por su
+tamaño. Se pueden conservar los ejemplos ya instalados, trabajar con archivos
+propios o instalar los ZIP oficiales con `phenoImage::install_examples()`.
 
-Si están publicados por el responsable en **Releases**, descarga el ejemplo que quieras:
+## Documentación
 
-- `PhenoImage_Ejemplo_RGB.zip`: RGB, CHM y polígonos.
-- `PhenoImage_Ejemplo_Sentera.zip`: multibanda Sentera y polígonos.
+- `LEEME.txt`: procedimiento y definiciones de las coberturas.
+- `NEWS.md`: cambios integrados en esta versión.
+- `VERIFICACION.txt`: comprobaciones realizadas y alcance.
 
-Con la aplicación detenida, ejecuta:
-
-```r
-phenoImage::install_examples()
-```
-
-Selecciona uno de esos ZIP sin descomprimirlo. Repite para el otro módulo si lo deseas y abre nuevamente PhenoImage. Los ejemplos quedan en una carpeta de datos de tu usuario y sobreviven a la reinstalación del paquete.
-
-```r
-phenoImage::example_status()
-```
-
-No se descargan ni sustituyen datos automáticamente. Para reemplazar expresamente un ejemplo instalado utiliza `phenoImage::install_examples(overwrite = TRUE)`.
-
-**Nota de publicación:** mientras el responsable no adjunte los ejemplos a una Release, esos ZIP no estarán disponibles en GitHub. La aplicación seguirá funcionando con archivos propios.
-
-## Entradas
-
-| Módulo | Entradas principales |
-|---|---|
-| Sentera | Multibanda con asignación correcta de bandas y polígonos identificados |
-| RGB | Ortomosaico RGB, polígonos identificados y CHM o DSM/DTM cuando se analiza altura |
-
-La calidad de los resultados depende de la alineación espacial, las unidades, el orden de bandas, la escala de datos y la calibración. Las correcciones y fórmulas deben elegirse según el origen de las imágenes. Consulta los controles de información de la aplicación.
-
-## Actualizar
-
-Descarga la nueva versión y repite la instalación con PhenoImage detenido y la sesión R reiniciada. Los ejemplos opcionales y las carpetas de resultados permanecen fuera de la instalación del paquete.
-
-## Método y referencias
-
-- HSB y Lab: llamadas directas a `pliman::rgb_to_hsb()` y `pliman::rgb_to_lab()`.
-- DGCI: fórmula documentada por pliman, evaluada con HSB.
-- Rásteres y extracción zonal: `terra`, `exactextractr` y código de PhenoImage.
-- Texturas: `glcm`, independiente de las conversiones de color de pliman.
-
-[pliman](https://nepem-ufsc.github.io/pliman/) · [Shiny](https://shiny.posit.co/)
-
-## Autoría y contacto
-
-**Autor y responsable de mantenimiento:** Riquelmer de Jesús Velázquez Hernandez.  
-**Contacto:** [rvelazquez@grupopapalotla.com](mailto:rvelazquez@grupopapalotla.com).  
-**Vinculación institucional:** CIPAT · Centro de Investigación de Pastos Tropicales · Grupo Papalotla.
-
-PhenoImage se desarrolla como parte de las actividades de análisis de imágenes y fenotipado del área de investigación de CIPAT · Grupo Papalotla.
-
-**Titularidad y condiciones de distribución:** pendientes de definición institucional. El proyecto se mantiene en revisión privada; la licencia se completará con la decisión institucional correspondiente.
-
-## Ayuda
-
-Para informar un problema usa **Issues** del repositorio privado e indica la versión, el módulo, el mensaje de error y los pasos para reproducirlo. Evita adjuntar datos del ensayo que no estén autorizados para compartir.
-
-`VERIFICACION.txt` describe las comprobaciones técnicas realizadas y sus límites. El repositorio privado ya existe en https://github.com/RiquelmerVelazquez/PhenoImage . E22 está publicada como versión privada de evaluación.
+Repositorio: https://github.com/RiquelmerVelazquez/PhenoImage

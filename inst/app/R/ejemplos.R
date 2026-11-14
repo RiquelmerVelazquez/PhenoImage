@@ -52,7 +52,7 @@ condicion_archivos_propios_cipat <- function() {
 aplicar_controles_ejemplo_cipat <- function(config, session) {
   for (k in names(config$texto)) shiny::updateTextInput(session,k,value=config$texto[[k]])
   for (k in names(config$numeros)) if (!is.null(config$numeros[[k]])) shiny::updateNumericInput(session,k,value=config$numeros[[k]])
-  for (k in names(config$radios)) if (!is.null(config$radios[[k]])) shiny::updateRadioButtons(session,k,selected=config$radios[[k]])
+  for (k in setdiff(names(config$radios), c("metodo", "metodo_phantom"))) if (!is.null(config$radios[[k]])) shiny::updateRadioButtons(session,k,selected=config$radios[[k]])
   for (k in names(config$selectores)) if (!is.null(config$selectores[[k]])) shiny::updateSelectInput(session,k,selected=config$selectores[[k]])
   for (k in names(config$checks)) shiny::updateCheckboxInput(session,k,value=isTRUE(config$checks[[k]]))
   for (k in names(config$grupos)) shiny::updateCheckboxGroupInput(session,k,selected=if(is.null(config$grupos[[k]])) character() else config$grupos[[k]])

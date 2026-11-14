@@ -16,4 +16,4 @@ install_dependencies(textures = TRUE, repos = "https://cloud.r-project.org")
 \item{repos}{Repositorio de paquetes R.}
 }
 \value{run_app devuelve el resultado de shiny::runApp al detenerla; check_installation devuelve una tabla de dependencias; install_dependencies devuelve esa tabla invisiblemente.}
-\details{Los cálculos se realizan en el equipo local. Los resultados se guardan en la carpeta que selecciona el usuario. Las imágenes de ejemplo se instalan aparte en la carpeta de datos del usuario. La aplicación conserva su interfaz E19.}
+\details{Los cálculos se realizan en el equipo local. Los resultados se guardan en la carpeta que selecciona el usuario. Las imágenes de ejemplo se instalan aparte en la carpeta de datos del usuario. Incluye análisis seleccionables, máscaras por muestras de dos o tres clases y vistas Básica, Personalizada y Avanzada de Exploración.}

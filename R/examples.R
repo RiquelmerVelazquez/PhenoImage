@@ -46,7 +46,13 @@ install_examples <- function(archive = NULL, overwrite = FALSE) {
   if (length(modules) != 1L || !modules %in% c("rgb", "sentera")) stop("El ZIP debe contener un solo módulo: rgb/ o sentera/.", call. = FALSE)
   expected <- paste0(modules, '/', .example_files(modules))
   if (!setequal(files, expected)) stop("El ZIP no coincide con los archivos del ejemplo oficial de PhenoImage.", call. = FALSE)
-  if (any(listing$Length[match(expected,names)] <= 0)) stop("El ZIP contiene archivos vacíos.", call. = FALSE)
+  lengths <- listing$Length[match(expected,names)]
+  # .cpg es auxiliar de codificación y en los ejemplos originales está vacío.
+  # Se conserva literalmente; nunca se inventa UTF-8 ni otra codificación.
+  auxiliary_cpg <- grepl("\\.cpg$", expected, ignore.case = TRUE)
+  if (anyNA(lengths) || any(lengths < 0) || any(lengths == 0 & !auxiliary_cpg)) {
+    stop("El ZIP contiene un archivo principal vacío o un tamaño inválido.", call. = FALSE)
+  }
   root <- .examples_root()
   dir.create(root, recursive = TRUE, showWarnings = FALSE)
   stage <- tempfile("instalar-", tmpdir = root)

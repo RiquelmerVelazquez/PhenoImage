@@ -88,7 +88,7 @@ preparar_imagen_cipat <- function(x, capa, p, limite = 800L, bandas_rgb = NULL) 
   if (!file.exists(ruta)) stop("No se encontró el TIFF de la capa seleccionada.")
   r <- terra::rast(ruta)
   if (!nzchar(terra::crs(r))) stop("El TIFF no tiene CRS definido.")
-  rgb <- identical(capa, "RGB"); mascara <- startsWith(capa, "Máscara")
+  rgb <- identical(capa, "RGB"); mascara <- startsWith(capa, "Máscara"); clases <- identical(capa, "Máscara de clases por muestras")
   if (rgb && terra::nlyr(r) < 3L) stop("El ortomosaico RGB necesita al menos tres bandas.")
   bandas <- terra::nlyr(r)
   if (rgb && is.null(bandas_rgb)) bandas_rgb <- bandas_rgb_resultado_cipat(x, bandas)
@@ -115,9 +115,9 @@ preparar_imagen_cipat <- function(x, capa, p, limite = 800L, bandas_rgb = NULL) 
     dominio <- if (mascara) c(0, 1) else if (identical(capa, "NDVI")) c(-1, 1) else if (length(v)) range(v) else c(0, 1)
     if (diff(dominio) == 0) dominio <- dominio + c(-1, 1) * max(1e-6, abs(dominio[1]) * .001)
     colores <- if (mascara) c("#cdbd9b", "#267543") else if (identical(capa, "NDVI")) grDevices::hcl.colors(80, "RdYlGn") else grDevices::hcl.colors(80, "Viridis")
-    pal <- leaflet::colorNumeric(colores, domain = dominio, na.color = "#00000000")
+    pal <- if (clases) leaflet::colorFactor(c("#a87543", "#267543", "#e8bd37"), domain = c(0, 1, 2), levels = c(0, 1, 2), na.color = "#00000000") else leaflet::colorNumeric(colores, domain = dominio, na.color = "#00000000")
   }
-  list(ok = TRUE, imagen = r, paleta = pal, rgb = rgb, capa = capa, bandas = bandas, sin_datos = if (rgb) FALSE else !length(v))
+  list(ok = TRUE, imagen = r, paleta = pal, rgb = rgb, capa = capa, bandas = bandas, clases = clases, sin_datos = if (rgb) FALSE else !length(v))
 }
 
 registrar_mapa_cipat <- function(input, output, session, ultima, datos) {
@@ -233,8 +233,7 @@ registrar_mapa_cipat <- function(input, output, session, ultima, datos) {
       else if (colorear) m <- leaflet::addLegend(m, colors = "#c5cbd0", labels = "Sin datos",
         title = as.character(shiny::tags$span(etiqueta)), position = "bottomright", layerId = "leyenda_parcelas")
       if (isTRUE(r$ok) && !is.null(r$imagen) && !r$rgb && !colorear && !isTRUE(r$sin_datos) && is.null(shiny::isolate(error_imagen())))
-        m <- leaflet::addLegend(m, pal = r$paleta, values = as.numeric(terra::values(r$imagen)),
-          title = as.character(shiny::tags$span(paste("Imagen ·", r$capa))), position = "bottomright", layerId = "leyenda_imagen", na.label = "Sin datos")
+        m <- leyenda_imagen_cipat(m, r, paste("Imagen ·", r$capa), "leyenda_imagen")
       m <- leaflet::fitBounds(m, unname(b["xmin"]), unname(b["ymin"]), unname(b["xmax"]), unname(b["ymax"]))
       vista$clave <- clave; vista$busqueda <- buscar; vista$centrar <- centrar; vista$recargar <- recargar
       m
@@ -257,4 +256,15 @@ registrar_mapa_cipat <- function(input, output, session, ultima, datos) {
     if (length(avisos)) shiny::div(class = "tip", paste(avisos, collapse = " ")) else NULL
   })
   shiny::outputOptions(output, "mapa_parcelas", suspendWhenHidden = FALSE)
+}
+
+# Las clases usan colores discretos, sin interpolar códigos ni inventar una clase seca.
+leyenda_imagen_cipat <- function(m, r, titulo, layerId = "leyenda_imagen") {
+  if (isTRUE(r$clases)) {
+    codigos <- sort(unique(as.numeric(terra::values(r$imagen))))
+    codigos <- codigos[is.finite(codigos) & codigos %in% 0:2]
+    leaflet::addLegend(m, colors = r$paleta(codigos), labels = c("Suelo", "Vegetación verde", "Material vegetal seco")[codigos + 1L],
+      title = as.character(shiny::tags$span(titulo)), position = "bottomright", layerId = layerId)
+  } else leaflet::addLegend(m, pal = r$paleta, values = as.numeric(terra::values(r$imagen)),
+    title = as.character(shiny::tags$span(titulo)), position = "bottomright", layerId = layerId, na.label = "Sin datos")
 }

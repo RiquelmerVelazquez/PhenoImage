@@ -24,6 +24,19 @@ leer_evaluacion_cipat <- function(ruta) {
   fuentes <- list(tipo = tipo, lote = obtener("Lote", basename(carpeta)), fecha = obtener("Fecha"),
     polys = obtener("Parcelas"), id = obtener("Campo_ID", "id"), rgb = obtener("RGB"), salida = carpeta)
   fuentes$origen_sentera <- obtener("Origen_Sentera", "metashape")
+  if ("Productos" %in% hojas) {
+    productos <- openxlsx::read.xlsx(ruta, sheet = "Productos", check.names = FALSE)
+    if (!all(c("Producto", "Archivo") %in% names(productos)) || anyDuplicated(productos$Producto)) stop("El catálogo de productos no es válido.")
+    rutas <- vapply(as.character(productos$Archivo), function(f) {
+      local <- file.path(carpeta, basename(f)); if (file.exists(local)) local else f
+    }, character(1))
+    capas <- as.list(stats::setNames(rutas, productos$Producto)); capas <- capas[vapply(capas, file.exists, logical(1))]
+    fuentes$mapas_bandas <- list(); clave <- clave_rgb_cipat(fuentes); texto <- obtener("Bandas_RGB")
+    if (startsWith(texto, "R=")) fuentes$mapas_bandas[[clave]] <- leer_texto_bandas_cipat(texto, clave)
+    fuentes$metodo <- obtener("Metodo"); fuentes$grupos <- strsplit(obtener("Analisis_seleccionados"), "; ", fixed = TRUE)[[1]]
+    return(list(tabla = tabla, excel = ruta, umbral = suppressWarnings(as.numeric(obtener("Umbral", NA_character_))),
+      salida = carpeta, tipo = tipo, fuentes = fuentes, capas = capas))
+  }
   clave <- clave_rgb_cipat(fuentes)
   fuentes$mapas_bandas <- list()
   fuentes$mapas_bandas[[clave]] <- if (identical(clave, "multibanda")) {
@@ -70,6 +83,8 @@ leer_evaluacion_cipat <- function(ruta) {
       if (length(existentes)) existentes[1] else archivo
     }, character(1))
   }
+  mascara_muestras <- archivo_salida_cipat(fuentes, "Mascara_Muestras", "tif")
+  if (file.exists(mascara_muestras)) candidatos <- c(candidatos, "Máscara por muestras" = basename(mascara_muestras))
   capas <- as.list(stats::setNames(file.path(carpeta, unname(candidatos)), names(candidatos)))
   capas <- capas[vapply(capas, file.exists, logical(1))]
   if (nzchar(fuentes$rgb) && file.exists(fuentes$rgb)) capas <- c(list(RGB = fuentes$rgb), capas)

@@ -62,7 +62,7 @@ leer_formulas_cipat <- function(txt, tipo) {
   if (!length(lineas) || length(lineas)>50) stop("Usa entre 1 y 50 índices.")
   formulas <- character()
   reservados <- c("CON","PRN","AUX","NUL",paste0("COM",1:9),paste0("LPT",1:9),"Red","Green","Blue","RE","NIR","R","G","B","Hue","Saturation","Value",
-    "Multibanda_corregida","NDVI_Mascara_Binaria","NDVI_Mascara_Vegetacion","Mascara_ExG_RGB",
+    "Mascara_Vegetacion","Mascara_Clases_Muestras","Multibanda_corregida","NDVI_Mascara_Binaria","NDVI_Mascara_Vegetacion","Mascara_ExG_RGB",
     "CHM_cm","Mascara_CHM","CHM_filtrado_cm","Green_vegetacion","Entropy_RGB","Contrast_RGB","Homogeneity_RGB",
     "HSB_Hue","HSB_Saturation","HSB_Brightness","DGCI","Lab_L","Lab_a","Lab_b")
   for (linea in lineas) {

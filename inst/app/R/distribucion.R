@@ -27,7 +27,7 @@ cipat_pendientes <- function(paquetes = cipat_paquetes) {
 }
 
 cipat_verificar_archivos <- function(raiz) {
-  archivos <- c("app.R", "R/distribucion.R", "R/informacion_ortomosaico.R", "R/ejemplos.R", "R/indices_editables.R",
+  archivos <- c("app.R", "R/analisis_selectivo.R", "R/segmentacion_muestras.R", "R/distribucion.R", "R/informacion_ortomosaico.R", "R/ejemplos.R", "R/indices_editables.R",
     "R/seleccion_indices_rgb.R", "R/catalogo_indices.R", "R/sentera_multibanda.R",
     "R/procesamiento_bloques.R", "R/guardado_sentera.R", "R/resultados_estandar.R", "R/exploracion.R",
     "R/lectura_resultados.R", "R/mapa_interactivo.R", "R/bandas_entrada.R",

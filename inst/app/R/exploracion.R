@@ -1,19 +1,19 @@
 # Análisis descriptivo de valores por parcela. No modifica los procesamientos.
 etiqueta_eda <- function(nombre) {
-  especiales <- c(Plant_ground_cover_image_NDVI_pct = "Cobertura NDVI (%)",
+  especiales <- c(Plant_ground_cover_image_Green_pct = "Cobertura verde (%)", Plant_ground_cover_image_Dry_pct = "Material vegetal seco (%)", Plant_ground_cover_image_Bare_soil_pct = "Suelo descubierto (%)", Plant_ground_cover_image_Total_pct = "Cobertura vegetal total (%)", Plant_ground_cover_image_Vegetation_pct = "Cobertura vegetal · máscara elegida (%)", Plant_ground_cover_image_Muestras_RGB_pct = "Cobertura por muestras · RGB (%)", Plant_ground_cover_image_Muestras_Sentera_pct = "Cobertura por muestras · Sentera (%)", Plant_ground_cover_image_NDVI_pct = "Cobertura NDVI (%)",
     Plant_ground_cover_image_RGB_pct = "Cobertura RGB · ExG (%)",
-    HSB_Hue_mean = "Tono HSB · media (grados)", HSB_Saturation_mean = "Saturación HSB · media (%)",
-    HSB_Brightness_mean = "Brillo HSB · media (%)",
+    HSB_Hue_mean = "Tono HSB · promedio (grados)", HSB_Saturation_mean = "Saturación HSB · promedio (%)",
+    HSB_Brightness_mean = "Brillo HSB · promedio (%)",
     RGB_Entropy_mean = "Textura RGB · entropía", RGB_Contrast_mean = "Textura RGB · contraste",
     RGB_Homogeneity_mean = "Textura RGB · homogeneidad")
   if (nombre %in% names(especiales)) return(unname(especiales[[nombre]]))
   nombre <- sub("^Parcela_", "", nombre)
-  sufijos <- c(mean = "media", median = "mediana", sd = "desviación estándar", cv = "CV (fracción)",
+  sufijos <- c(mean = "promedio", median = "mediana", sd = "desviación estándar", cv = "CV (fracción)",
     min = "mínimo", max = "máximo", p10 = "P10", p25 = "P25", p75 = "P75", p90 = "P90", p95 = "P95", IQR = "rango intercuartílico",
     valid_area_pct = "área válida (%)", polygon_area_m2 = "área de parcela (m²)",
     total_area_m2 = "área válida (m²)", veg_area_m2 = "área detectada (m²)", soil_area_m2 = "área no detectada (m²)",
     total_pix = "píxeles equivalentes válidos", veg_pix = "píxeles equivalentes detectados")
-  prefijos <- c(Canopy_height_image = "Altura del dosel", Plant_ground_cover_image_NDVI = "Cobertura NDVI",
+  prefijos <- c(Plant_ground_cover_image_Green = "Cobertura verde", Plant_ground_cover_image_Dry = "Material vegetal seco", Plant_ground_cover_image_Bare_soil = "Suelo descubierto", Plant_ground_cover_image_Total = "Cobertura vegetal total", Plant_ground_cover_image_Vegetation = "Cobertura vegetal", Canopy_height_image = "Altura del dosel", Plant_ground_cover_image_NDVI = "Cobertura NDVI",
     Plant_ground_cover_image_RGB = "Cobertura RGB", Plant_ground_cover_image_CHM = "Cobertura según altura")
   for (k in names(prefijos)) nombre <- sub(paste0("^", k), prefijos[[k]], nombre)
   for (k in names(sufijos)[order(nchar(names(sufijos)), decreasing = TRUE)]) {
@@ -30,6 +30,42 @@ variables_eda <- function(df) {
   n <- names(df)[vapply(df, is.numeric, logical(1))]
   n <- n[!n %in% c("id", "Lote", "Fecha") & !startsWith(n, "Parcela_")]
   stats::setNames(n, vapply(n, etiqueta_eda, character(1)))
+}
+
+# Los perfiles solo filtran opciones de Exploración; nunca cambian la tabla HTP.
+variables_basicas_eda <- function(df) {
+  todas <- variables_eda(df); n <- unname(todas)
+  principal <- grepl("_mean$", n) | n == "Canopy_height_image_p90" |
+    grepl("^Plant_ground_cover_image_(Green|Dry|Bare_soil|Total|Vegetation|NDVI|RGB|Muestras_RGB|Muestras_Sentera)_pct$", n)
+  evaluada <- vapply(df[n], function(v) any(is.finite(v)), logical(1))
+  todas[principal & evaluada]
+}
+variables_visibles_eda <- function(df, perfil = "basica", personalizadas = character()) {
+  todas <- variables_eda(df)
+  if (is.null(perfil) || !perfil %in% c("basica","personalizada","avanzada")) perfil <- "basica"
+  if (perfil == "avanzada") return(todas)
+  if (perfil == "personalizada") return(todas[unname(todas) %in% personalizadas])
+  variables_basicas_eda(df)
+}
+elegir_variable_eda <- function(opciones, actual = NULL, preferidas = character(), excluir = NULL) {
+  n <- unname(opciones)
+  if (!length(n)) return(character())
+  if (length(actual)==1L && actual %in% n) return(actual)
+  candidatas <- unique(c(preferidas,n))
+  candidatas <- candidatas[candidatas %in% n]
+  distintas <- setdiff(candidatas,excluir)
+  if (length(distintas)) distintas[1] else candidatas[1]
+}
+
+etiqueta_grupo_eda <- function(campo, grupos) {
+  if (is.null(campo) || identical(campo,"__ninguno__")) return("Evaluación")
+  etiqueta <- names(grupos)[match(campo,unname(grupos))]
+  if (!length(etiqueta) || is.na(etiqueta)) etiqueta <- sub("^Parcela_","",campo)
+  clave <- tolower(iconv(etiqueta,to="ASCII//TRANSLIT"))
+  if (clave %in% c("rep","repeticion","repetition","replicate")) "Repetición"
+  else if (clave %in% c("bloque","block")) "Bloque"
+  else if (clave %in% c("genotipo","genotype")) "Genotipo"
+  else paste("Agrupación:",etiqueta)
 }
 
 resumen_eda <- function(v, grupo = NULL) {
@@ -141,12 +177,19 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
     if (is.null(x)) return(div(class = "card empty-state", icon("chart-line"), h3("Análisis exploratorio disponible al finalizar"),
       p("Procesa una evaluación y selecciona este apartado para explorar sus variables.")))
     if (!is.null(x$error)) return(div(class="card empty-state",icon("circle-info"),h3("Revisa el origen de los datos"),p(x$error)))
-    opciones <- variables_eda(datos()$tabla)
-    if (!length(opciones)) return(div(class = "card empty-state", h3("No hay variables numéricas para explorar.")))
-    preferida <- if (x$tipo == "phantom") "Canopy_height_image_p90" else "NDVI_mean"
-    if (!preferida %in% opciones) preferida <- opciones[[1]]
-    alternativa <- if (x$tipo == "integrado") "Canopy_height_image_p90" else if (x$tipo == "phantom") "Plant_ground_cover_image_RGB_pct" else "Plant_ground_cover_image_NDVI_pct"
-    if (!alternativa %in% opciones) alternativa <- opciones[[length(opciones)]]
+    todas <- variables_eda(datos()$tabla)
+    if (!length(todas)) return(div(class = "card empty-state", h3("No hay variables numéricas para explorar.")))
+    basicas <- variables_basicas_eda(datos()$tabla)
+    perfil <- shiny::isolate(input$eda_perfil)
+    if (is.null(perfil) || !perfil %in% c("basica","personalizada","avanzada")) perfil <- "basica"
+    personalizadas <- shiny::isolate(input$eda_personalizadas)
+    if (is.null(personalizadas)) personalizadas <- unname(basicas)
+    personalizadas <- intersect(personalizadas,unname(todas))
+    opciones <- variables_visibles_eda(datos()$tabla,perfil,personalizadas)
+    preferida <- elegir_variable_eda(opciones,shiny::isolate(input$eda_variable),
+      if (x$tipo == "phantom") c("Canopy_height_image_mean","Canopy_height_image_p90") else "NDVI_mean")
+    alternativa <- elegir_variable_eda(opciones,shiny::isolate(input$eda_variable_y),
+      c("Plant_ground_cover_image_Green_pct","Canopy_height_image_p90","NDVI_mean"),excluir=preferida)
     grupo_actual <- shiny::isolate(agrupacion())
     if (!grupo_actual %in% unname(datos()$grupos)) grupo_actual <- "__ninguno__"
     tagList(
@@ -155,18 +198,25 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
       div(class = "analysis-layout",
         tags$aside(class = "analysis-tools",
           tarjeta("Controles", "Selecciona variables y agrupación. Orden y elementos visibles se aplican a la comparación.",
-            selectInput("eda_variable", "Variable X", opciones, selected = preferida),
+            selectInput("eda_perfil", "Vista de variables", c("Básica · principales"="basica", "Personalizada · elegir variables"="personalizada", "Avanzada · todos los estadísticos"="avanzada"), selected=perfil),
+            conditionalPanel("input.eda_perfil === 'personalizada'",
+              selectizeInput("eda_personalizadas", "Variables que quieres mostrar", choices=todas, selected=personalizadas, multiple=TRUE,
+                options=list(placeholder="Busca y selecciona variables",plugins=list("remove_button"),maxOptions=1000))),
+            uiOutput("eda_perfil_nota"),
+            selectInput("eda_variable", "Variable", opciones, selected = preferida),
             selectInput("eda_grupo", "Agrupación", c("Por parcela" = "__ninguno__", datos()$grupos), selected = grupo_actual),
-            selectInput("eda_variable_y", "Variable Y", opciones, selected = alternativa),
-            selectInput("eda_relacion_nivel", "Puntos de la relación X–Y", c("Parcelas con ambos valores"="parcela", "Medias por grupo"="medias")),
+            conditionalPanel("input.eda_vista === 'relacion'",
+              selectInput("eda_variable_y", "Variable Y", opciones, selected = alternativa),
+              selectInput("eda_relacion_nivel", "Puntos de la relación X–Y", c("Parcelas con ambos valores"="parcela", "Medias por grupo"="medias"))),
             uiOutput("tg_eda_ui"),
-            div(class = "control-section", div(class = "tool-heading", icon("chart-column"), "Comparación"),
-              selectInput("eda_orden", "Orden", c("Mayor a menor" = "desc", "Menor a mayor" = "asc", "Nombre del grupo / ID" = "nombre")),
-              sliderInput("eda_limite", "Elementos visibles", min = 5, max = 60, value = 25, step = 5)),
+            conditionalPanel("!input.eda_vista || input.eda_vista === 'comparacion'",
+              div(class = "control-section", div(class = "tool-heading", icon("chart-column"), "Comparación"),
+                selectInput("eda_orden", "Orden", c("Mayor a menor" = "desc", "Menor a mayor" = "asc", "Nombre del grupo / ID" = "nombre")),
+                sliderInput("eda_limite", "Elementos visibles", min = 5, max = 60, value = 25, step = 5))),
             if (!length(datos()$grupos)) div(class = "tip", icon("circle-info"), "Tus parcelas tienen únicamente ID. Para agrupar por genotipo o tratamiento, incorpora esos campos al SHP/GPKG."),
             if (!is.null(datos()$aviso)) div(class = "tip", datos()$aviso),
             div(class = "control-section export-tools", div(class = "tool-heading", icon("download"), "Descargas"),
-              downloadButton("eda_csv", "Resumen CSV"), downloadButton("eda_png", "Comparación PNG")),
+              downloadButton("eda_csv", "Resumen CSV"), conditionalPanel("!input.eda_vista || input.eda_vista === 'comparacion'", downloadButton("eda_png", "Comparación PNG"))),
             ayuda_contextual("Interpretación del análisis", "Las estadísticas se calculan sobre valores por parcela. La selección de grupos y variables no modifica el Excel HTP ni los GeoTIFF."))),
         div(class = "analysis-content", uiOutput("eda_indicadores"),
           tabsetPanel(id = "eda_vista",
@@ -183,8 +233,30 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
             tabPanel("Resumen", value = "resumen", tarjeta("Resumen estadístico", "Una fila por grupo, o una fila para la evaluación completa si no hay agrupación.",
               DT::DTOutput("eda_resumen")))))))
   })
+  opciones_visibles <- shiny::reactive({
+    variables_visibles_eda(datos()$tabla,input$eda_perfil,input$eda_personalizadas)
+  })
+  shiny::observeEvent(opciones_visibles(), {
+    opciones <- opciones_visibles(); x <- ultima()
+    principal <- elegir_variable_eda(opciones,shiny::isolate(input$eda_variable),
+      if (identical(x$tipo,"phantom")) c("Canopy_height_image_mean","Canopy_height_image_p90") else "NDVI_mean")
+    segunda <- elegir_variable_eda(opciones,shiny::isolate(input$eda_variable_y),
+      c("Plant_ground_cover_image_Green_pct","Canopy_height_image_p90","NDVI_mean"),excluir=principal)
+    shiny::updateSelectInput(session,"eda_variable",choices=opciones,selected=principal)
+    shiny::updateSelectInput(session,"eda_variable_y",choices=opciones,selected=segunda)
+  },ignoreNULL=FALSE)
+  output$eda_perfil_nota <- shiny::renderUI({
+    n <- length(opciones_visibles())
+    if (!n) return(div(class="tip",icon("circle-info"),
+      if (identical(input$eda_perfil,"personalizada")) "Selecciona al menos una variable para explorar." else "No hay métricas principales evaluadas. Usa la vista Avanzada para consultar los estadísticos disponibles."))
+    tags$p(class="ib-note",paste(n,"variables visibles. La vista no cambia los resultados ni el Excel."))
+  })
+  # Cambiar solo la etiqueta conserva las variables elegidas al cambiar de pestaña.
+  shiny::observeEvent(input$eda_vista, {
+    shiny::updateSelectInput(session, "eda_variable", label = if (identical(input$eda_vista, "relacion")) "Variable X" else "Variable")
+  }, ignoreNULL = FALSE)
   seleccion <- shiny::reactive({
-    d <- datos()$tabla; shiny::req(input$eda_variable, input$eda_variable %in% names(d), is.numeric(d[[input$eda_variable]]))
+    d <- datos()$tabla; shiny::req(input$eda_variable, input$eda_variable %in% unname(opciones_visibles()), input$eda_variable %in% names(d), is.numeric(d[[input$eda_variable]]))
     campo <- agrupacion()
     grupo <- if (campo %in% unname(datos()$grupos)) as.character(d[[campo]]) else NULL
     if (!is.null(grupo)) grupo[is.na(grupo) | !nzchar(trimws(grupo))] <- "Sin grupo informado"
@@ -217,12 +289,13 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
   eda_registrar_hover(input,output,"eda_hover_comparacion","eda_ficha_comparacion",puntos_comparacion,c("Variable"="Variable","Grupo / parcela"="Nombre","Genotipo"="Genotipo","Media / valor"="Media","Desviación estándar"="DE","Valores válidos"="N","Sin datos"="Sin_datos","Parcelas"="IDs","Repeticiones"="Repeticiones","Identificación"="Tipo"),"Comparación del ensayo")
   output$eda_histograma <- shiny::renderPlot({
     s<-seleccion();ok<-is.finite(s$v);v<-s$v[ok];shiny::validate(shiny::need(length(v)>0,"No hay valores disponibles."))
-    estilo_plot_eda();h<-graphics::hist(v,breaks="Sturges",plot=FALSE)
+    estilo_plot_eda(c(5.5,4.8,2.8,1.4));h<-graphics::hist(v,breaks="Sturges",plot=FALSE)
     graphics::plot(h,col="#d7e6db",border="white",main="",xlab=s$etiqueta,ylab="Número de parcelas",yaxt="n")
     ticks<-pretty(c(0,max(h$counts)));graphics::abline(h=ticks,col="#edf1ed",lwd=.7);graphics::plot(h,add=TRUE,col="#c7ddce",border="white")
     graphics::axis(2,at=ticks,tick=FALSE);graphics::abline(v=mean(v),col="#24704A",lwd=2);graphics::abline(v=stats::median(v),col="#718079",lty=2,lwd=1.5)
     if(any(s$marcas$testigo[ok])) graphics::rug(v[s$marcas$testigo[ok]],col=s$marcas$color,lwd=2,ticksize=.06)
-    graphics::legend("topright",legend=c("Media","Mediana",if(any(s$marcas$testigo[ok]))"Testigos (marcas inferiores)"),col=c("#24704A","#718079",if(any(s$marcas$testigo[ok]))s$marcas$color),lty=c(1,2,if(any(s$marcas$testigo[ok]))1),bty="n",cex=.78)
+    graphics::legend("topright",legend=c("Media","Mediana",if(any(s$marcas$testigo[ok]))"Testigos: valores individuales"),col=c("#24704A","#718079",if(any(s$marcas$testigo[ok]))s$marcas$color),lty=c(1,2,if(any(s$marcas$testigo[ok]))1),bty="n",cex=.78)
+    if(any(s$marcas$testigo[ok])) graphics::mtext("Marcas inferiores: valores de las parcelas testigo",side=1,line=4.3,cex=.7,col=s$marcas$color)
   },res=96)
   output$eda_cajas <- shiny::renderPlot({
     s<-seleccion();ok<-is.finite(s$v);shiny::validate(shiny::need(any(ok),"No hay valores disponibles."))
@@ -232,7 +305,10 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
     keep<-g %in% niveles;f<-factor(g[keep],levels=niveles);valores<-s$v[ok][keep]
     flags<-s$marcas$testigo[ok][keep];tipos<-vapply(niveles,function(n) eda_tipo_grupo(flags[as.character(f)==n]),character(1))
     colores<-eda_colores(tipos,s$marcas$color)
-    estilo_plot_eda(c(8,4.8,2.8,1.3));graphics::boxplot(valores~f,col=grDevices::adjustcolor(colores,alpha.f=.15),border=colores,outline=FALSE,las=2,cex.axis=.76,ylab=s$etiqueta,xlab="",medlwd=2,boxwex=.55)
+    cortas <- max(nchar(niveles)) <= 8L
+    estilo_plot_eda(c(if(cortas)5.5 else 9,4.8,2.8,1.3))
+    graphics::boxplot(valores~f,col=grDevices::adjustcolor(colores,alpha.f=.15),border=colores,outline=FALSE,las=if(cortas)1 else 2,cex.axis=.76,ylab=s$etiqueta,xlab="",medlwd=2,boxwex=.55)
+    graphics::mtext(etiqueta_grupo_eda(agrupacion(),datos()$grupos),side=1,line=if(cortas)3 else 7.5,cex=.9,col="#365f48")
     graphics::abline(h=pretty(range(valores)),col="#edf1ed",lwd=.7)
     graphics::boxplot(valores~f,col=grDevices::adjustcolor(colores,alpha.f=.15),border=colores,outline=FALSE,axes=FALSE,add=TRUE,medlwd=2,boxwex=.55)
     jitter<-((seq_along(valores)*.61803398875)%%1-.5)*.24
@@ -243,7 +319,7 @@ registrar_exploracion <- function(input, output, session, ultima, datos, agrupac
   },res=96)
   eda_registrar_hover(input,output,"eda_hover_cajas","eda_ficha_cajas",puntos_cajas,c("Variable"="Variable","Parcela"="ID","Genotipo"="Genotipo","Repetición"="Repeticion","Grupo"="Grupo","Valor"="y","Identificación"="Tipo"),"Valor por parcela")
   pares <- shiny::reactive({
-    s<-seleccion();shiny::req(input$eda_variable_y,input$eda_variable_y %in% names(s$tabla),is.numeric(s$tabla[[input$eda_variable_y]]))
+    s<-seleccion();shiny::req(input$eda_variable_y,input$eda_variable_y %in% unname(opciones_visibles()),input$eda_variable_y %in% names(s$tabla),is.numeric(s$tabla[[input$eda_variable_y]]))
     y<-s$tabla[[input$eda_variable_y]];ok<-is.finite(s$v)&is.finite(y)
     p<-data.frame(x=s$v[ok],y=y[ok],ID=s$ids[ok],Genotipo=s$meta$genotipo[ok],Repeticion=s$meta$repeticion[ok],N=rep.int(1L,sum(ok)),Tipo=ifelse(s$marcas$testigo[ok],"Testigo","Experimental"),stringsAsFactors=FALSE)
     nivel<-if(is.null(input$eda_relacion_nivel))"parcela" else input$eda_relacion_nivel

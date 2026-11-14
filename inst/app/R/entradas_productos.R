@@ -223,9 +223,13 @@ productos_cipat <- function(x) {
 }
 
 metrica_producto_cipat <- function(capa, tabla, tipo) {
-  especiales <- c(`Máscara NDVI` = "Plant_ground_cover_image_NDVI_pct", `Máscara RGB` = "Plant_ground_cover_image_RGB_pct",
+  especiales <- c(`Máscara de vegetación` = "Plant_ground_cover_image_Vegetation_pct",
+    `Máscara por muestras` = if (tipo == "phantom") "Plant_ground_cover_image_Muestras_RGB_pct" else "Plant_ground_cover_image_Muestras_Sentera_pct",
+    `Máscara NDVI` = "Plant_ground_cover_image_NDVI_pct", `Máscara RGB` = "Plant_ground_cover_image_RGB_pct",
     `Máscara CHM` = "Canopy_height_image_p90", `CHM original (cm)` = "Canopy_height_image_p90", `CHM filtrado (cm)` = "Canopy_height_image_p90",
     `Textura Entropy` = "RGB_Entropy_mean", `Textura Contrast` = "RGB_Contrast_mean", `Textura Homogeneity` = "RGB_Homogeneity_mean", `NDVI · vegetación` = "NDVI_mean")
+  if ("Plant_ground_cover_image_Green_pct" %in% names(tabla)) especiales["Máscara de vegetación"] <- "Plant_ground_cover_image_Green_pct"
+  especiales["Máscara de clases por muestras"] <- "Plant_ground_cover_image_Total_pct"
   nombre <- if (capa %in% names(especiales)) especiales[[capa]] else paste0(capa, "_mean")
   if (!nombre %in% names(tabla) && capa %in% c("Red", "Green", "Blue", "RE", "NIR")) {
     nombre <- paste0(if (tipo == "phantom") "RGB_" else "Sentera_", capa, "_mean")
@@ -237,8 +241,7 @@ visor_producto_cipat <- function(x, capa, parcelas = NULL, mostrar_parcelas = TR
   r <- preparar_imagen_cipat(x, capa, if (is.null(parcelas)) NULL else parcelas$poligonos)
   m <- mapa_base_cipat(if (is.null(parcelas)) limites_imagen_cipat(r$imagen) else parcelas$limites)
   m <- agregar_imagen_cipat(m, r)
-  if (!r$rgb && !isTRUE(r$sin_datos)) m <- leaflet::addLegend(m, pal = r$paleta, values = as.numeric(terra::values(r$imagen)),
-    title = as.character(shiny::tags$span(capa)), position = "bottomright", na.label = "Sin datos")
+  if (!r$rgb && !isTRUE(r$sin_datos)) m <- leyenda_imagen_cipat(m, r, capa)
   titulo <- as.character(shiny::tags$div(class = "product-map-title", shiny::tags$strong(capa), shiny::tags$br(),
     shiny::tags$small(paste(x$fuentes$lote, x$fuentes$fecha, sep = " · ")),
     if (!r$rgb && r$bandas > 1L) shiny::tags$div("Vista de banda 1"),
@@ -249,8 +252,8 @@ visor_producto_cipat <- function(x, capa, parcelas = NULL, mostrar_parcelas = TR
     gen <- campo_mapa_cipat(p$grupos, c("genotipo", "genotype", "originali", "original1", "material"))
     rep <- campo_mapa_cipat(p$grupos, c("rep", "repeticion", "repetición", "repetition", "bloque", "block"))
     campo <- function(k, i) if (k %in% names(p$tabla)) valor_mapa_cipat(p$tabla[[k]][i]) else "Sin definir"
-    fichas <- vapply(seq_along(p$ids), function(i) popup_mapa_cipat(p$ids[i], if (is.null(nombre)) NA_real_ else p$tabla[[nombre]][i],
-      if (is.null(nombre)) "Esta capa no tiene una métrica por parcela asociada" else paste("HTP ·", etiqueta_eda(nombre)), campo(gen, i), campo(rep, i), x$fuentes$lote, x$fuentes$fecha), character(1))
+    fichas <- vapply(seq_along(p$ids), function(i) popup_mapa_cipat(p$ids[i], if (is.null(nombre)) "No aplica" else p$tabla[[nombre]][i],
+      if (is.null(nombre)) "Imagen de referencia · sin métrica asociada" else paste("HTP ·", etiqueta_eda(nombre)), campo(gen, i), campo(rep, i), x$fuentes$lote, x$fuentes$fecha), character(1))
     m <- leaflet::addPolygons(m, data = p$poligonos, layerId = p$ids, group = "Parcelas", color = "#f3de7c", weight = 1.5, fillOpacity = .02,
       popup = fichas, label = paste("Parcela", p$ids), highlightOptions = leaflet::highlightOptions(color = "#ffffff", weight = 3, bringToFront = TRUE))
   }
